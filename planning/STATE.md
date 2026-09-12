@@ -3,12 +3,12 @@
 > Single always-current snapshot. Reading this + CLAUDE.md + ROADMAP.md fully restores context.
 
 - **Last updated:** 2026-09-11
-- **Active phase:** Scaffolded — awaiting roadmap approval, then Module 1 (vertical slice).
-- **Repo:** github.com/schoolofdevops/402-mlops · **Site (once deployed):** https://schoolofdevops.github.io/402-mlops-site/
+- **Active phase:** Scaffolded and deployed. Labs + quizzes live. Next: author lesson pages.
+- **Repo:** github.com/schoolofdevops/402-mlops-site · **Site:** https://schoolofdevops.github.io/402-mlops-site/ (live)
 
 ## NEXT action
 
-Human approves `planning/ROADMAP.md`, then run `/course-module 1` (Slice 2) to build the vertical slice.
+Run `/course-module 2` — M2 first, since it has a real lab behind it and proves the lesson-to-lab seam before a house style is locked across ten pages.
 
 ## Locked decisions
 

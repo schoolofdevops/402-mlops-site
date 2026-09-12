@@ -57,11 +57,17 @@ identified and verified against `joevisco1/MLOps-Kubernetes-KEDA-Argo`. See
 Out of scope for this build. Add as `m11` in `course.config.json` and re-scaffold once the labs
 are written.
 
-## Phase — Ship
+## Phase — Ship 🔄
 
-- ⬜ Create `402-mlops-src`, `402-mlops-labs`, `402-mlops-site` under `schoolofdevops`
-- ⬜ Repo Settings → Pages → Source = GitHub Actions
-- ⬜ Push with a `workflow`-scoped token (a plain `repo` PAT is rejected)
-- ⬜ Confirm the Actions run is green and the site is live at
-      https://schoolofdevops.github.io/402-mlops-site/
-- ⬜ Live verification pass
+Deployment shape changed from the three-repo convention to a single public repo, so the
+built site deploys with the built-in `GITHUB_TOKEN` and needs no personal access token.
+
+- ✅ Created `schoolofdevops/402-mlops-site` (public)
+- ✅ Pages source set to GitHub Actions
+- ✅ Pushed; deploy workflow green (build 42s, deploy 12s)
+- ✅ Site live at https://schoolofdevops.github.io/402-mlops-site/
+- ⬜ Full live verification pass across all 42 pages
+- ⬜ Lesson and deep-dive pages still scaffold stubs
+
+`outline.md` and `planning/specs/` are gitignored, since they carry internal notes and the
+Udemy course id. Remove those two lines from `.gitignore` to publish them.
