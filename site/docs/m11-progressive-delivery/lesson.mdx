@@ -1,0 +1,263 @@
+---
+sidebar_position: 1
+title: 'Lesson: Releasing Models Safely with Argo Rollouts'
+---
+
+# Releasing Models Safely with Argo Rollouts
+
+By the end of Module 8 you had a good deployment system. Push to the release branch, Argo CD
+notices, the new version goes out.
+
+For a web application that is enough. For a model it is not, and the reason goes back to something
+from Module 1.
+
+```mermaid
+flowchart LR
+    subgraph A["Software fails loudly"]
+        direction TB
+        A1["crash"] --> A2["probe goes red"]
+        A2 --> A3["rolling update stops"]
+        A3 --> A4["you are protected"]
+    end
+
+    subgraph B["A model fails quietly"]
+        direction TB
+        B1["starts fine"] --> B2["answers every request"]
+        B2 --> B3["returns a plausible number"]
+        B3 --> B4["nothing goes red"]
+    end
+
+    style A fill:#e8f5e9
+    style B fill:#ffebee
+```
+
+A rolling `Deployment` only knows whether the pod is alive. It has no opinion about whether the
+answers are any good. This module replaces it with something that does.
+
+## What you'll learn
+
+- Explain why a Deployment cannot protect you from a model that fails quietly
+- Run a candidate and the stable version side by side with an Argo Rollout
+- Promote and abort explicitly, without a redeploy or a rollback
+- Turn a Prometheus query into a pass or fail promotion gate
+- Write PromQL that stays honest when traffic is low or absent
+- Run staging and production from one set of manifests with kustomize overlays
+
+## Blue/green, in one picture
+
+```mermaid
+flowchart TB
+    U["real users"] --> AS["model-active<br/>Service"]
+    AS --> RS1["ReplicaSet rev 5<br/>STABLE"]
+
+    T["you, and synthetic traffic"] --> PS["model-preview<br/>Service"]
+    PS --> RS2["ReplicaSet rev 6<br/>CANDIDATE"]
+
+    RS2 -.->|"promote:<br/>active points here"| AS
+    RS2 -.->|"abort:<br/>just discard it"| X["✖ nothing happened<br/>to production"]
+
+    style RS1 fill:#e8f5e9
+    style RS2 fill:#fff4e5
+    style X fill:#ffebee
+```
+
+Both versions run at once. Only one gets real traffic. Promotion is the moment the active Service
+is repointed.
+
+The important consequence: **aborting is not rolling back**. There is nothing to undo, because
+the candidate never served anybody. You simply discard it.
+
+:::tip[The setting that makes this worth doing]
+`autoPromotionEnabled: false`.
+
+Set it to `true` and the Rollout promotes as soon as the preview pods are healthy, which puts you
+straight back where you started. Healthy is not the same as correct.
+:::
+
+## From looking at it, to measuring it
+
+Running two versions is only half the answer. Somebody still has to decide.
+
+In the first lab, that somebody is you, and you make the call by opening the preview and looking.
+That does not scale, and it does not work when there are twenty models.
+
+So the second lab hands the judgement to Prometheus.
+
+```mermaid
+flowchart TB
+    NEW["new image on the release branch"] --> PREV["preview pods start"]
+    PREV --> PRE["PrePromotion AnalysisRun<br/>queries Prometheus<br/>against model-preview"]
+
+    PRE -->|"FAIL"| HALT["rollout degraded<br/>active untouched"]
+    PRE -->|"PASS"| HUMAN["human promotes"]
+
+    HUMAN --> CUT["active Service repointed"]
+    CUT --> POST["PostPromotion AnalysisRun<br/>against model-active<br/>under REAL traffic"]
+
+    POST -->|"FAIL"| RB["roll back"]
+    POST -->|"PASS"| DONE["rollout complete"]
+
+    style HALT fill:#ffebee
+    style RB fill:#ffebee
+    style DONE fill:#c8e6c9
+```
+
+Both halves earn their place. Pre-promotion asks whether the candidate is healthy before users
+reach it. Post-promotion asks whether it is still healthy now that they have, because synthetic
+traffic is never quite like the real thing.
+
+## The problem that makes people give up on gates
+
+This is the most valuable thing in the module, so it is worth slowing down.
+
+The obvious latency gate is the same query from your Grafana dashboard:
+
+```
+histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[2m])))
+```
+
+Run it against an idle service and you get `NaN`.
+
+```mermaid
+flowchart TB
+    Q["histogram_quantile()<br/>on an idle service"] --> N["NaN<br/>(quantile of nothing<br/>is undefined)"]
+    N --> C["successCondition:<br/>result[0] < 0.50"]
+    C --> F["NaN < 0.50 is FALSE<br/>→ gate FAILS"]
+    F --> W["you investigate a candidate<br/>that was completely fine.<br/>It was just idle."]
+
+    style N fill:#ffebee
+    style F fill:#ffebee
+    style W fill:#fff4e5
+```
+
+This is why metric gates get abandoned. They cry wolf exactly in the environments where they
+matter most, which is staging, where traffic is thin.
+
+Now the trap on the other side. Guard against `NaN` by defaulting to zero, and an idle service
+reports a latency of zero, which passes. **A completely dead service now passes your health
+check.**
+
+So you need two things at once.
+
+```mermaid
+flowchart TB
+    subgraph FIX["The two-part answer"]
+        direction TB
+        F1["1 — a traffic-safe query<br/>multiply by (rate(_count) > 0)<br/>then 'or on() vector(0)'<br/>→ returns 0 when idle, never NaN"]
+        F2["2 — a SEPARATE traffic floor gate<br/>'was there enough traffic<br/>for that answer to mean anything?'"]
+    end
+
+    F1 --> R["no false failures"]
+    F2 --> R2["no false passes"]
+
+    style FIX fill:#e8f5e9
+```
+
+Reading the guard from the inside out: `sum(rate(..._count[2m])) > 0` produces a sample only when
+traffic exists. Multiplying by it with `on() group_left()` makes the whole expression empty when
+there is none. Then `or on() vector(0)` supplies a zero.
+
+:::note[A gate that cannot see should refuse to pass]
+When you delete the synthetic traffic CronJob, the latency gate passes, because it falls back to
+zero. The traffic floor gate fails, and the promotion is blocked.
+
+That is the correct behaviour. The system is saying it cannot make a judgement, rather than
+waving things through.
+:::
+
+## Staging needs traffic before any of this works
+
+Preview pods receive nothing, because no user knows they exist. So you generate a small amount of
+synthetic traffic on a schedule.
+
+Two details in that CronJob are deliberate:
+
+- **It calls `/health`, not `/predict`.** Fabricated predictions would pollute the prediction
+  distribution, and that same distribution is what Module 10 uses to detect drift. You would be
+  manufacturing your own false drift signal
+- **It marks requests with an `X-Synth: 1` header**, so real and synthetic traffic can be told
+  apart in the metrics later
+
+## One model, two environments
+
+The third lab splits the system in two without duplicating a single manifest.
+
+```mermaid
+flowchart TB
+    BASE["base/model<br/>the model defined ONCE<br/>rollout, services, gates,<br/>scaledobject, servicemonitor"]
+
+    BASE --> STG["overlays/staging<br/>namespace: model-staging<br/>looser thresholds<br/>tracks: main"]
+    BASE --> PRD["overlays/prod<br/>namespace: model-prod<br/>stricter thresholds<br/>tracks: release"]
+
+    STG --> A1["Argo CD app:<br/>house-price-staging"]
+    PRD --> A2["Argo CD app:<br/>house-price-prod"]
+
+    style BASE fill:#fff4e5
+    style STG fill:#e3f2fd
+    style PRD fill:#e8f5e9
+```
+
+A **base** defines the system once. An **overlay** layers environment-specific changes on top. The
+model definition exists in exactly one place.
+
+The single most important difference between the two overlays is `targetRevision`. Staging follows
+`main`, so anything merged appears there within minutes. Production follows `release`, so nothing
+arrives without a pull request.
+
+Your approval step from Module 8 is now a real boundary between two real environments.
+
+## Stop deploying `latest`
+
+Module 8 left you with a bug you worked around. Here you fix it.
+
+```mermaid
+flowchart LR
+    subgraph L["tag: latest"]
+        direction TB
+        L1["manifest never changes"]
+        L2["Argo CD sees no difference"]
+        L3["node already has 'latest'"]
+        L4["nothing happens"]
+    end
+
+    subgraph S["tag: sha-a1b2c3d-42"]
+        direction TB
+        S1["new tag every build"]
+        S2["manifest genuinely changes"]
+        S3["Argo CD has something to sync"]
+        S4["rollback = revert the commit"]
+    end
+
+    L ==> S
+
+    style L fill:#ffebee
+    style S fill:#c8e6c9
+```
+
+Three things follow from a unique tag. Every running pod traces to one commit. Every release is a
+real change. And rollback is deterministic, because the previous tag still exists in the registry.
+
+## Two traps worth naming
+
+**KEDA cannot scale a Rollout without extra permission.** Its service account was never granted
+access to `argoproj.io` resources. Nothing logs a clear error at the ScaledObject level.
+
+The general rule: whenever a custom resource replaces a built-in one, anything that used to scale
+or watch it needs its RBAC updated, and it fails silently.
+
+**Ad-hoc restart patches cause churn.** Forcing a rollout with a timestamp patch creates a new pod
+template hash, a new ReplicaSet, and with `selfHeal` running you get endless replacement nobody
+can explain. Use one explicit annotation you bump on purpose.
+
+## What you should have at the end
+
+- the model running as a Rollout with active and preview Services
+- a candidate promoted, and another aborted with production untouched
+- three gates: p95 latency, 5xx rate, and a traffic floor
+- a deliberately slow model stopped by the gate, with the AnalysisRun proving it
+- staging and production from one base, tracking different branches
+- images tagged with the commit SHA
+- a release runbook written down
+
+Your gates now measure whether the service is fast and whether it errors. They say nothing about
+whether the model is still **right**. That is Module 10.

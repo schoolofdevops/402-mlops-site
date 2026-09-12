@@ -1,0 +1,275 @@
+---
+sidebar_position: 1
+title: 'Lesson: MLOps Foundations and Context'
+---
+
+# MLOps Foundations and Context
+
+Optional module. Nothing in the project depends on it.
+
+This is the background. What MLOps is, how it differs from the DevOps you already do, where it
+came from, and how companies actually run it at scale. Read it before Module 1 if you like context
+first, or after Module 8 when you have something to hang it on.
+
+## What MLOps is, and the problem it solves
+
+The optimistic version of machine learning goes like this. You build a model, you train it, you
+deploy it, and profit follows.
+
+```mermaid
+flowchart LR
+    subgraph DREAM["The pitch"]
+        direction LR
+        D1["build a model"] --> D2["deploy"] --> D3["profit"]
+    end
+
+    subgraph REAL["What happens"]
+        direction LR
+        R1["build a model"] --> R2["it works in a notebook"]
+        R2 --> R3["months pass"]
+        R3 --> R4["it never reaches production"]
+    end
+
+    DREAM -.->|"reality"| REAL
+
+    style DREAM fill:#e8f5e9
+    style REAL fill:#ffebee
+```
+
+Enormous amounts of money go into machine learning, and a large share of models never reach
+production at all. Not because the models are bad. Because the path from a notebook to a running
+service was never built.
+
+MLOps is **a set of practices**, not a job title and not a tool. The aim is to automate, deploy and
+maintain ML systems so they are production ready and reproducible.
+
+### What actually breaks without it
+
+```mermaid
+flowchart TB
+    P["six months later:<br/>'why did the model<br/>predict this?'"] --> Q1["which version<br/>was running?"]
+    P --> Q2["what data was it<br/>trained on?"]
+    P --> Q3["which parameters?"]
+    P --> Q4["can we reproduce it?"]
+
+    Q1 --> A["without tracking:<br/>nobody knows"]
+    Q2 --> A
+    Q3 --> A
+    Q4 --> A
+
+    style P fill:#fff4e5
+    style A fill:#ffebee
+```
+
+That is why experiment tracking exists, and why you set up MLflow in Module 2 before training
+anything.
+
+### The restaurant analogy
+
+Imagine a restaurant you loved. You go back a month later and the same dish tastes completely
+different. A different chef made it, working from memory.
+
+A good restaurant writes the recipe down. Quantities, method, timings. Then any trained chef
+produces the same dish.
+
+```mermaid
+flowchart LR
+    subgraph BAD["No recipe"]
+        direction TB
+        B1["chef cooks from memory"] --> B2["different every time"]
+    end
+    subgraph GOOD["Written recipe"]
+        direction TB
+        G1["quantities, method, timing"] --> G2["same dish, every time"]
+    end
+    BAD ==> GOOD
+
+    style BAD fill:#ffebee
+    style GOOD fill:#e8f5e9
+```
+
+MLOps is writing the recipe down. Which data, which features, which algorithm, which parameters,
+which version. Then the result is reproducible instead of lucky.
+
+## MLOps versus DevOps
+
+You already know DevOps. Plan, code, build, test, deploy, repeat. So how much transfers?
+
+Most of it. What changes is **what you are versioning and what you are testing**.
+
+```mermaid
+flowchart TB
+    subgraph DO["DevOps"]
+        direction TB
+        O1["artifact: CODE"]
+        O2["version: code"]
+        O3["test: does it work?"]
+        O4["fails: LOUDLY"]
+    end
+
+    subgraph ML["MLOps"]
+        direction TB
+        M1["artifacts: CODE + DATA + MODEL"]
+        M2["version: code, data, experiments"]
+        M3["test: does it work AND is it accurate?"]
+        M4["fails: SILENTLY"]
+    end
+
+    style DO fill:#e3f2fd
+    style ML fill:#fff4e5
+```
+
+Three artifacts instead of one. That is the whole difference, and everything else follows from it.
+
+| | DevOps | MLOps |
+|---|---|---|
+| What you version | source code | code, **data**, **experiments**, **models** |
+| Build input | source code | source code **and data** |
+| Testing | unit, integration | plus model accuracy, data validation |
+| Deployed thing | a service | a **serving / inference** service |
+| Failure mode | crashes, errors | **silently wrong predictions** |
+| Retraining | not a concept | a first-class pipeline |
+
+### Same shape, different tools
+
+Most of your toolbox carries over unchanged.
+
+| Job | DevOps | MLOps adds |
+|---|---|---|
+| Version control | Git | Git, plus DVC for data |
+| CI | Jenkins, GitHub Actions | same |
+| Experiments | — | **MLflow, Weights & Biases** |
+| Pipelines | Jenkins, GH Actions | Argo Workflows, Kubeflow, Airflow, Metaflow |
+| Deploy | Kubernetes, Argo CD | same |
+| Serving | your app | **KServe, Seldon Core, BentoML, TF Serving** |
+| Monitoring | Prometheus, Grafana | same, plus **drift detection** |
+
+The rows that are new are the rows where the extra artifacts show up. Everything else is your
+existing job.
+
+:::note[Which is why this transition is a real career path]
+If you already do DevOps, you are the expert on containers, CI, Kubernetes and monitoring. Those
+are most of the boxes. What you are adding is a handful of new ideas, not a new profession.
+
+The role is often called MLOps engineer, or increasingly **AI platform engineer**, since the same
+person ends up supporting ML, LLM and agent workloads.
+:::
+
+## The maturity ladder
+
+Nobody arrives at the top. You climb.
+
+```mermaid
+flowchart TB
+    L0["Level 0 — manual<br/>notebooks, hand-run scripts,<br/>deploy by hand"] --> L1["Level 1 — pipeline automation<br/>training runs as a pipeline,<br/>experiments tracked"]
+    L1 --> L2["Level 2 — CI/CD<br/>build, test, deploy automated,<br/>GitOps delivery"]
+    L2 --> L3["Level 3 — operated<br/>monitoring, drift detection,<br/>automated retraining"]
+
+    style L0 fill:#ffebee
+    style L1 fill:#fff4e5
+    style L2 fill:#e3f2fd
+    style L3 fill:#c8e6c9
+```
+
+This course walks that ladder. Modules 2 and 3 are level 0. Module 5 is level 1. Modules 6 to 8
+are level 2. Modules 9 and 10 are level 3.
+
+Most organisations sit at level 0 or 1 and believe they are at 2.
+
+## How we got here
+
+```mermaid
+flowchart LR
+    A["1950s–80s<br/>early AI,<br/>funding dries up"] --> B["2012<br/>ImageNet<br/>deep learning works"]
+    B --> C["2015–20<br/>traditional ML<br/>becomes normal<br/>→ MLOps appears"]
+    C --> D["2017<br/>'Attention is<br/>All You Need'<br/>transformers"]
+    D --> E["2018–22<br/>LLMs<br/>→ LLMOps"]
+    E --> F["2023+<br/>agentic AI<br/>→ AgentOps"]
+
+    style C fill:#e8f5e9
+    style E fill:#e3f2fd
+    style F fill:#fff4e5
+```
+
+Two things drove it. Cheaper compute, especially GPUs. And far more available data.
+
+Once companies had models that mattered commercially, the operational problem appeared, and MLOps
+was the answer to it.
+
+## ML, LLM and agentic — picking between them
+
+A common misunderstanding is that each generation replaces the last.
+
+:::warning[It's not like that]
+They build on top of one another. Traditional ML is not going away, and plenty of problems are
+solved better and far more cheaply by it than by a language model.
+
+There is no one solution to your problem.
+:::
+
+```mermaid
+flowchart TB
+    Q{"what kind of<br/>problem?"} --> ML["Traditional ML"]
+    Q --> LLM["LLM"]
+    Q --> AG["Agentic"]
+
+    ML --> ML1["tabular data<br/>numeric prediction<br/>classification<br/>→ cheap, fast, explainable"]
+    LLM --> LLM1["language, documents<br/>summarising, Q&A<br/>→ prompts, RAG, vector DBs"]
+    AG --> AG1["multi-step tasks<br/>tool use, workflows<br/>→ orchestration, planning"]
+
+    style ML fill:#e8f5e9
+    style LLM fill:#e3f2fd
+    style AG fill:#fff4e5
+```
+
+Their operational concerns differ too:
+
+| | MLOps | LLMOps | AgentOps |
+|---|---|---|---|
+| You train | yes | rarely, mostly prompting | no |
+| Core work | pipelines, retraining | prompts, RAG, vector DBs | tools, planning, orchestration |
+| Main worry | drift, accuracy | hallucination, token cost | tool failures, loops, cost |
+| Evaluation | R², MAE, F1 | groundedness, eval sets | task completion |
+
+Do not try to solve every problem with the newest thing. Predicting a house price with a language
+model would be slower, more expensive and less accurate than the regression you build in this
+course.
+
+## How real companies do it
+
+**Netflix** had data scientists spending their time on infrastructure rather than models. They
+built **Metaflow**, giving a Python interface to workflows so scientists stayed in Python and the
+platform handled the rest.
+
+**Uber** had teams solving the same problems repeatedly with no shared platform. They built
+**Michelangelo**, one central ML platform covering the lifecycle end to end. Faster iteration,
+less time to production.
+
+**OpenAI** operates models at enormous inference scale on this same class of infrastructure,
+dealing with accuracy, hallucination and cost.
+
+Two patterns run through all three:
+
+```mermaid
+flowchart LR
+    P1["build a PLATFORM,<br/>not one-off solutions"] --> R["scientists focus on models<br/>platform handles the rest"]
+    P2["CROSS-FUNCTIONAL teams<br/>beat silos"] --> R
+
+    style R fill:#c8e6c9
+```
+
+:::tip[Start small]
+None of these companies began with a platform. They began with one pipeline, one model, one
+problem.
+
+Start with something simple. Automate one step. Then the next. That is exactly what this course
+does.
+:::
+
+## Where to go from here
+
+If you have not started the project yet, Module 1 gives you the map and Module 2 sets up your
+machine.
+
+If you have finished Module 8, the natural next step is Modules 9 and 10, where the practices on
+this page stop being background and become a working control loop.

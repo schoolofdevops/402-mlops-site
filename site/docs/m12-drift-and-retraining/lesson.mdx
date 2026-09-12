@@ -1,0 +1,260 @@
+---
+sidebar_position: 1
+title: 'Lesson: Drift Detection and Automated Retraining'
+---
+
+# Drift Detection and Automated Retraining
+
+Every check you have built measures the **service**. Is it fast, is it erroring, is anyone calling
+it. All three can be green while the model is quietly wrong.
+
+Models do not fail like software. They fail like a weather forecast written for last year. The
+code is fine. The numbers look reasonable. But the houses arriving are no longer the houses the
+model learned from, and nobody notices for months.
+
+## What you'll learn
+
+- Describe data drift and why every service-level check misses it
+- Capture a baseline in the transformed feature space, and explain why the raw space is wrong
+- Score requests with z-scores and export drift as Prometheus metrics
+- Alert on your own instrumentation being broken, not only on what it measures
+- Trigger retraining from evidence rather than from a schedule
+- Trace one full cycle from drift through retrain to a promoted model
+
+## What drift actually looks like
+
+```mermaid
+flowchart TB
+    subgraph T["When the model was trained"]
+        direction TB
+        T1["sqft: 1200 – 2400"]
+        T2["year built: 1960 – 2010"]
+        T3["mostly suburban"]
+    end
+
+    subgraph P["Six months later, in production"]
+        direction TB
+        P1["sqft: 3800 – 6500"]
+        P2["year built: 2019 – 2024"]
+        P3["mostly urban"]
+    end
+
+    T ==>|"the world moved"| P
+    P --> R["model still answers<br/>confidently.<br/>Latency unchanged.<br/>Zero errors.<br/>Every gate passes."]
+
+    style T fill:#e8f5e9
+    style P fill:#fff4e5
+    style R fill:#ffebee
+```
+
+The only way to see this is to measure the shape of the incoming data and compare it against the
+shape you trained on.
+
+## The baseline has to live in the right space
+
+This is the part that is easy to get subtly wrong.
+
+```mermaid
+flowchart LR
+    RAW["raw request<br/>sqft=1500<br/>location='suburban'"] --> PRE["preprocessor.transform()"]
+    PRE --> VEC["[0.42, -1.1, 0, 1, 0, ...]<br/>18 numbers"]
+    VEC --> M["the model"]
+
+    VEC -.->|"compare HERE"| BASE["baseline:<br/>mean + std per column,<br/>in the SAME space"]
+    RAW -.->|"NOT here"| X["✖ meaningless"]
+
+    style VEC fill:#fff4e5
+    style BASE fill:#e8f5e9
+    style X fill:#ffebee
+```
+
+Your model never sees `sqft = 1500`. It sees whatever comes out of `preprocessor.transform()`, a
+vector of scaled numbers and one-hot columns. That is the space it learned in, so that is the
+space the baseline must describe.
+
+:::warning[This duplication is a real weakness]
+The baseline script repeats the feature engineering from the training path, and the two must match
+exactly. If they drift apart, your drift score measures the difference between your own two code
+paths rather than anything about the data.
+
+That is **training and inference feature parity**, and it is one of the most common causes of
+silent model failure. The lab's exercise asks you to fix it properly.
+:::
+
+## Scoring a request
+
+The measure is the **z-score**, which is nothing but how many standard deviations a value sits
+from the mean.
+
+```
+z = | (x − μ) / σ |
+```
+
+| z | Meaning |
+|---|---|
+| 0 | identical to the training mean |
+| 1 | one standard deviation away, normal |
+| 2 | a moderate shift |
+| 3 | a strong anomaly |
+| 5+ | far outside what the model learned |
+
+### Why the top few, not the average of all
+
+```mermaid
+flowchart TB
+    F["18 features in one request<br/>2 are wildly off<br/>16 are perfectly normal"]
+
+    F --> AVG["mean of ALL 18<br/>signal divided by nine<br/>score barely moves"]
+    F --> TOPK["mean of the TOP K<br/>stays responsive,<br/>still averaged enough<br/>to resist noise"]
+
+    AVG --> BAD["threshold never fires"]
+    TOPK --> GOOD["drift is visible"]
+
+    style AVG fill:#ffebee
+    style BAD fill:#ffebee
+    style TOPK fill:#e8f5e9
+    style GOOD fill:#c8e6c9
+```
+
+Most of a drifting request looks fine. Averaging everything buries the signal. Taking the top K
+keeps it responsive without letting a single noisy value swing the result.
+
+## Three metrics, and why the third one matters most
+
+```mermaid
+flowchart TB
+    D["drift module"] --> G["model_drift_score<br/>GAUGE — current level<br/>→ the dashboard"]
+    D --> C["model_drift_high_total<br/>COUNTER — how many crossed<br/>→ the alerts"]
+    D --> B["model_drift_baseline_loaded<br/>FLAG — did config load?<br/>→ alert on YOURSELF"]
+
+    B --> W["if the baseline file is missing,<br/>drift reports 0.0 forever.<br/>A flat green dashboard<br/>and a broken monitor."]
+
+    style B fill:#fff4e5
+    style W fill:#ffebee
+```
+
+A gauge tells you the level now. A counter lets you ask "how many in the last five minutes" and
+get a stable answer, which is why alerts use it.
+
+The third is the one people leave out. If the baseline never loaded, the code does not crash. It
+reports zero drift, forever, and that looks exactly like a healthy model.
+
+:::note[The habit worth taking away]
+**Alert on your own instrumentation being broken, not only on the thing it measures.**
+
+Monitoring that cannot tell you when it is blind is not monitoring.
+:::
+
+## Alert on a ratio, not a count
+
+Ten drifted requests out of ten matters enormously. Ten out of ten million does not.
+
+Alerting on the raw count pages you every time traffic increases. The rules use a **ratio** of
+drift-high requests to total predictions, averaged over a long window, with two levels: a warning
+at sustained 5 percent and a critical at sustained 15 percent.
+
+Drift is a slow phenomenon. The alerting should be slow to match, which is why both carry a
+`for: 10m` so a brief spike pages nobody.
+
+## Thresholds you must derive yourself
+
+```mermaid
+flowchart LR
+    S["deploy with the gate<br/>absent or very high"] --> N["send a few hundred<br/>NORMAL predictions"]
+    N --> Q["max_over_time(model_drift_score[1h])<br/>note the value"]
+    Q --> T["set threshold ≈ 2× that"]
+    T --> V["send drifted payloads,<br/>confirm it fires"]
+    V --> W["write down where<br/>the number came from"]
+
+    style W fill:#c8e6c9
+```
+
+:::warning[A copied threshold is worse than no gate]
+The right value depends on your feature count, your preprocessor and your training data. Copy a
+number from somebody else's cluster and it will either never fire or always fire, and you will
+stop trusting it either way.
+
+The labs deliberately leave these unset and walk you through deriving them.
+:::
+
+## Closing the loop
+
+```mermaid
+flowchart TB
+    T0["T0 — healthy<br/>drift ≈ 0, gates passing"] --> T1["T1 — drift appears<br/>score climbs, counter increments,<br/>alert fires"]
+    T1 --> T2["T2 — retrain triggered<br/>workflow QUERIES Prometheus,<br/>confirms drift is real"]
+    T2 --> T2b["train in-image<br/>regenerate baseline<br/>verify artifacts<br/>push SHA-tagged image<br/>COMMIT to git"]
+    T2b --> T3["T3 — Argo CD syncs<br/>preview rollout<br/>gates evaluate"]
+    T3 --> T4["T4 — human promotes<br/>post-promotion analysis"]
+    T4 --> T5["T5 — drift back near zero<br/>baseline matches reality"]
+    T5 -.-> T0
+
+    style T0 fill:#e8f5e9
+    style T1 fill:#ffebee
+    style T4 fill:#fff4e5
+    style T5 fill:#c8e6c9
+```
+
+Four things in that loop are worth naming.
+
+**Retraining is gated on evidence.** The cron wakes up daily, but it only does work if Prometheus
+confirms drift. Retraining on a schedule burns compute when nothing changed, and leaves you stale
+when something did.
+
+**Training happens inside the image** that will serve the model, so the library versions at
+training and inference are identical.
+
+**The baseline is regenerated in the same run.** Forget this and the new model immediately reports
+massive drift against data it now handles perfectly well, and your own gates block a correct
+release.
+
+**The pipeline commits to Git. It never touches the cluster.** `kustomize edit set image` rewrites
+the overlay, and the commit is the deploy trigger.
+
+## Why a human still promotes
+
+The loop stops short of full automation on purpose.
+
+Automation should **propose**. A human should **approve**, for as long as the model affects real
+outcomes. The gates already rule out the obvious failures, so the person is not checking latency
+by hand. They are answering the question no metric can answer.
+
+There is a practical argument too. Watch the loop fail a few times before trusting it unattended.
+Observe, stabilise, then automate, in that order.
+
+## The blind spot you should know about
+
+```mermaid
+flowchart TB
+    L["the loop knows"] --> K1["✅ is it fast?"]
+    L --> K2["✅ is it erroring?"]
+    L --> K3["✅ is the data familiar?"]
+    L --> K4["❌ is it RIGHT?"]
+
+    K4 --> E["no accuracy gate exists yet.<br/>That is the Mini Project."]
+
+    style K4 fill:#ffebee
+    style E fill:#fff4e5
+```
+
+There is a second blind spot, and it is subtler. After a retrain the drift score falls because
+**the baseline moved**, not because the world went back to normal.
+
+If the new data is genuinely the new normal, retraining was right. If it is an upstream system
+sending garbage, you have just trained on garbage and told the model that garbage is normal. The
+metric cannot tell those apart.
+
+**A human still has to ask why the data changed.**
+
+## What you should have at the end
+
+- a baseline captured in the transformed feature space
+- three drift metrics exported, including the baseline-loaded flag
+- a Grafana panel and two alert levels on a ratio
+- drift as a release gate, with your own derived threshold
+- a retraining workflow that gates itself on a Prometheus query
+- one full cycle observed: drift injected, retrain fired, new model promoted, drift normalised
+
+That is the end of the build. What you have is not a collection of Kubernetes objects and
+pipelines. It is a control loop, where every movement is measurable, every promotion is justified,
+and every rollback is explainable.
