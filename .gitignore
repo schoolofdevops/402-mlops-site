@@ -1,0 +1,10 @@
+node_modules/
+site/build/
+site/.docusaurus/
+.DS_Store
+*.log
+
+# Internal planning material — kept out of the public repo.
+# Remove these two lines if you want them published.
+outline.md
+planning/specs/

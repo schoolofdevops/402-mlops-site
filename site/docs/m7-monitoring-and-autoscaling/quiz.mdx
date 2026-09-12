@@ -1,0 +1,139 @@
+---
+sidebar_position: 90
+title: "Quiz: Monitoring and Autoscaling Model Inference"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# Monitoring and Autoscaling Model Inference — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "Why does the lab install monitoring using the `kube-prometheus-stack` Helm chart instead of installing Prometheus and Grafana separately?",
+    options: [
+      { text: "It's the only chart available on Artifact Hub", correct: false },
+      { text: "It bundles Prometheus, Grafana, dashboards, and the essential wiring between them in one deploy", correct: true, explanation: "The lecture picks kube-prometheus-stack specifically because it comes \"pre-installed with many different things, including dashboards\" and the essential Grafana/Prometheus configuration, deployed in one `helm upgrade --install`." },
+      { text: "It avoids the need for a `monitoring` namespace", correct: false },
+      { text: "It automatically instruments any FastAPI app without code changes", correct: false },
+    ],
+  },
+  {
+    prompt: "What are the default Grafana login credentials when installed via the kube-prometheus-stack Helm chart?",
+    options: [
+      { text: "admin / admin", correct: false },
+      { text: "admin / prom-operator", correct: true, explanation: "Username is `admin` and the default password from the chart is `prom-operator` (confirmed in both the lecture and Lab 8)." },
+      { text: "grafana / kube-prometheus", correct: false },
+      { text: "root / changeme", correct: false },
+    ],
+  },
+  {
+    prompt: "In the Prometheus + Grafana stack, what is the correct description of each tool's role?",
+    options: [
+      { text: "Grafana stores time-series data; Prometheus visualizes it", correct: false },
+      { text: "Prometheus is a time-series data store; Grafana is the visualizer that uses Prometheus as a data source", correct: true, explanation: "The lecture explicitly states Prometheus \"is more like a data store... a time series database,\" and Grafana \"is a visualizer for Prometheus,\" fetching everything it displays from Prometheus as its data source." },
+      { text: "Both tools independently scrape and store metrics", correct: false },
+      { text: "Grafana replaces the need for Prometheus once dashboards are imported", correct: false },
+    ],
+  },
+  {
+    prompt: "What is the purpose of a Prometheus `ServiceMonitor` resource in this setup?",
+    options: [
+      { text: "It restarts the FastAPI pod on failure", correct: false },
+      { text: "It tells Prometheus which service/endpoint to scrape for metrics, and must match the Helm release label", correct: true, explanation: "The ServiceMonitor configures Prometheus to scrape a specific service's `/metrics` endpoint; its `release` label must match the Helm release name (e.g. `prom`), which the instructor calls out as an easy-to-miss gotcha." },
+      { text: "It defines the KEDA scaling thresholds", correct: false },
+      { text: "It creates the Grafana dashboard automatically", correct: false },
+    ],
+  },
+  {
+    prompt: "Which library is added to the FastAPI app to expose Prometheus metrics with minimal code?",
+    options: [
+      { text: "`prometheus_client` only, with manual metric definitions", correct: false },
+      { text: "`prometheus-fastapi-instrumentator`, via `Instrumentator().instrument(app).expose(app)`", correct: true, explanation: "Lab 8 adds `prometheus_fastapi_instrumentator` to `requirements.txt` and instruments the app with `Instrumentator().instrument(app).expose(app)`, which automatically exposes a `/metrics` endpoint." },
+      { text: "`grafana-fastapi-connector`", correct: false },
+      { text: "`keda-fastapi-adapter`", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the course use 95th-percentile (p95) latency instead of average latency as a scaling metric?",
+    options: [
+      { text: "Percentiles are easier to configure in KEDA", correct: false },
+      { text: "Average latency gets skewed by outliers; p95 excludes the top 5% and better reflects typical worst-case response time", correct: true, explanation: "The lecture explains that averages get \"skewed\" by outliers, so excluding the top 5% and using the 95th percentile gives a more representative latency value for scaling decisions." },
+      { text: "Prometheus cannot compute averages", correct: false },
+      { text: "p95 is required by Kubernetes HPA by default", correct: false },
+    ],
+  },
+  {
+    prompt: "What does KEDA add on top of Kubernetes' built-in Horizontal Pod Autoscaler (HPA)?",
+    options: [
+      { text: "It replaces HPA entirely with a new scaling engine", correct: false },
+      { text: "It lets HPA scale based on external event sources/metrics (like Prometheus queries), not just default CPU/memory", correct: true, explanation: "KEDA's strength is integrating Kubernetes autoscaling with external systems (\"scalers\") such as Prometheus, queues, or cloud metrics — going beyond Kubernetes' default CPU/memory-only metrics." },
+      { text: "It only works for vertical scaling", correct: false },
+      { text: "It removes the need for resource requests/limits", correct: false },
+    ],
+  },
+  {
+    prompt: "In a KEDA `ScaledObject`, what does the `pollingInterval` field control?",
+    options: [
+      { text: "How often Grafana refreshes its dashboard", correct: false },
+      { text: "How often KEDA checks/runs the trigger query against the metric source to decide whether to scale", correct: true, explanation: "`pollingInterval` sets how frequently KEDA re-evaluates the trigger's query (e.g., every 30s) against the configured threshold to decide on scaling actions." },
+      { text: "The interval Prometheus scrapes the FastAPI `/metrics` endpoint", correct: false },
+      { text: "How often the pod restarts", correct: false },
+    ],
+  },
+  {
+    prompt: "What is the key functional difference between Horizontal Pod Autoscaler (HPA) and Vertical Pod Autoscaler (VPA)?",
+    options: [
+      { text: "HPA changes CPU/memory limits on existing pods; VPA creates new replicas", correct: false },
+      { text: "HPA creates more replicas of the same pod (scale out); VPA adjusts the CPU/memory resources given to existing pods (scale up/down)", correct: true, explanation: "HPA scales horizontally by launching multiple pod instances; VPA scales vertically by dynamically adjusting the resource requests/limits of the pods themselves." },
+      { text: "They do the exact same thing but for different Kubernetes versions", correct: false },
+      { text: "VPA only works with StatefulSets", correct: false },
+    ],
+  },
+  {
+    prompt: "Why must resource `requests` and `limits` be defined on the model deployment before setting up meaningful autoscaling?",
+    options: [
+      { text: "Kubernetes refuses to schedule pods without them", correct: false },
+      { text: "CPU-utilization-based scaling decisions are calculated relative to the requested CPU value, so without it there's no baseline to measure against", correct: true, explanation: "The lecture stresses that monitoring/scaling for CPU is based on the requested CPU value; without defined resources, the system \"doesn't know how your pods are behaving\" and can't make sensible scaling decisions." },
+      { text: "They are required to install Helm", correct: false },
+      { text: "They control how many replicas KEDA creates by default", correct: false },
+    ],
+  },
+  {
+    prompt: "What is `hey`, as used in the load-testing lab?",
+    options: [
+      { text: "A Kubernetes CLI plugin for scaling", correct: false },
+      { text: "A minimal HTTP load-generator tool used to send concurrent prediction requests to the model endpoint", correct: true, explanation: "`hey` is described as \"like HTTP load generator,\" used with flags like `-z 3m -c 200` to send sustained concurrent traffic to the `/predict` endpoint for testing autoscaling." },
+      { text: "A Prometheus query language alias", correct: false },
+      { text: "A Grafana plugin for dashboards", correct: false },
+    ],
+  },
+  {
+    prompt: "During the load test, monitoring data for the FastAPI app briefly disappeared. What was the root cause, and how was it fixed?",
+    options: [
+      { text: "Prometheus ran out of disk space; fixed by increasing storage", correct: false },
+      { text: "The single-threaded FastAPI process couldn't serve predictions and expose `/metrics` at the same time under load; fixed by running the metrics server on a separate thread/port (9100)", correct: true, explanation: "Using ChatGPT to debug, the instructor found the app was single-threaded and overloaded during heavy prediction traffic, dropping metrics; the fix exposes Prometheus metrics on a separate port (9100) via `start_http_server` in a background thread, requiring updates to the Dockerfile, Kubernetes service, and ServiceMonitor." },
+      { text: "The ServiceMonitor label was wrong; fixed by renaming the Helm release", correct: false },
+      { text: "KEDA crashed under load; fixed by reinstalling KEDA", correct: false },
+    ],
+  },
+  {
+    prompt: "What extra component must be installed before CPU-based autoscaling (`kubectl top`, CPU-type KEDA trigger) will work?",
+    options: [
+      { text: "A separate Grafana instance", correct: false },
+      { text: "The Kubernetes Metrics Server", correct: true, explanation: "Without the Metrics Server, `kubectl top pods/nodes` returns \"metrics API is not available.\" It must be installed and given a couple of minutes to start reporting before CPU-based triggers or `top` commands work." },
+      { text: "A second ServiceMonitor", correct: false },
+      { text: "The VPA admission controller", correct: false },
+    ],
+  },
+  {
+    prompt: "When running HPA (via KEDA) and VPA together, what complementary roles do they typically play?",
+    options: [
+      { text: "VPA decides replica count while HPA decides pod resource size", correct: false },
+      { text: "HPA scales the number of pod replicas based on live metrics like latency/CPU, while VPA gradually right-sizes each pod's resource requests/limits, which over time reduces how many replicas HPA needs to launch", correct: true, explanation: "The lecture shows both running together: KEDA-driven HPA reacts to latency/CPU by adding replicas, while VPA learns from usage data and increases per-pod CPU/memory allocation (e.g., from 50m to 126m), which over iterations means fewer, larger pods are needed — \"the scaling will become more efficient.\"" },
+      { text: "They cannot be used together under any circumstances", correct: false },
+      { text: "VPA only manages the metrics-server, not the model pods", correct: false },
+    ],
+  },
+]} />

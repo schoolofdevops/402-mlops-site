@@ -1,0 +1,121 @@
+---
+sidebar_position: 90
+title: "Quiz: Building an MLOps CI Pipeline with GitHub Actions"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# Building an MLOps CI Pipeline with GitHub Actions — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "Why does the instructor avoid calling this section's pipeline a \"CI/CD pipeline\"?",
+    options: [
+      { text: "Because GitHub Actions cannot run deployment steps at all", correct: false },
+      { text: "Because what's being built only covers continuous integration (build, test, package, publish) — continuous delivery to Kubernetes happens later with a separate tool like Argo CD", correct: true, explanation: "The module intro explicitly draws the line: everything up to packaging and publishing the image is CI; the CD part starts once you deploy to Kubernetes with a tool like Argo CD or Flux CD." },
+      { text: "Because CI/CD is a deprecated term in MLOps", correct: false },
+      { text: "Because the pipeline doesn't build a Docker image", correct: false },
+    ],
+  },
+  {
+    prompt: "In GitHub Actions syntax, what determines *when* a workflow runs?",
+    options: [
+      { text: "The `jobs` block", correct: false },
+      { text: "The `runs-on` field", correct: false },
+      { text: "The `on` (events) block", correct: true, explanation: "Events, defined under `on`, are the triggers (push, pull_request, schedule, workflow_dispatch, etc.) that decide when the pipeline executes." },
+      { text: "The `steps` block", correct: false },
+    ],
+  },
+  {
+    prompt: "In the workflow YAML hierarchy, how do \"jobs\" and \"steps\" relate?",
+    options: [
+      { text: "A step can contain multiple jobs", correct: false },
+      { text: "A job is made up of one or more steps, and each job runs on its own runner", correct: true, explanation: "Jobs are like separate pipeline stages, each executed on a runner (a sandboxed environment); each job is broken down into steps, which are the individual actions or commands." },
+      { text: "Jobs and steps are interchangeable terms for the same thing", correct: false },
+      { text: "Steps run before any job is defined", correct: false },
+    ],
+  },
+  {
+    prompt: "What is a GitHub Actions \"runner\"?",
+    options: [
+      { text: "A YAML linter for workflow files", correct: false },
+      { text: "A sandboxed environment (e.g., an Ubuntu container) that a job executes in, with tools like Docker pre-installed", correct: true, explanation: "The runner is described as a sandbox environment, e.g. `ubuntu-latest`, that comes with Docker pre-installed and is where the job's steps actually execute." },
+      { text: "A Python script that generates workflow files automatically", correct: false },
+      { text: "A Docker Hub feature for tagging images", correct: false },
+    ],
+  },
+  {
+    prompt: "When the pipeline's model-training step first failed with a \"connection refused\" error, what was the root cause?",
+    options: [
+      { text: "The Docker image didn't exist yet", correct: false },
+      { text: "MLflow wasn't running inside the runner, so the training script couldn't connect to it", correct: true, explanation: "Training depends on MLflow tracking; since the runner doesn't have MLflow running by default, the training step failed until MLflow was launched inside the runner via Docker." },
+      { text: "The GitHub Actions runner had no internet access", correct: false },
+      { text: "The DockerHub credentials were missing", correct: false },
+    ],
+  },
+  {
+    prompt: "How was MLflow made available inside the CI runner for the training step?",
+    options: [
+      { text: "By installing MLflow as a GitHub Action from the marketplace", correct: false },
+      { text: "By running a `docker run` command (pulling the MLflow image and starting it, e.g. mapped to port 5000) as a step before training, then stopping/removing the container afterward", correct: true, explanation: "The runner already has Docker, so MLflow is pulled and started with `docker run`, matching the tracking URI the training script expects, and cleaned up with `docker stop`/`docker rm` after training completes." },
+      { text: "By connecting to a permanently hosted MLflow server on the internet", correct: false },
+      { text: "MLflow ships pre-installed on GitHub-hosted Ubuntu runners", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the workflow use the Git commit SHA (or a shortened version of it) as the Docker image tag instead of `latest`?",
+    options: [
+      { text: "DockerHub doesn't support the `latest` tag", correct: false },
+      { text: "It gives every build a unique, traceable tag back to the exact code commit that produced it, rather than silently overwriting the same tag each time", correct: true, explanation: "The lecture explains that `latest` isn't a good idea for traceability; using `${{ github.sha }}` (or a shortened 7-character version) ties each published image to the exact commit that built it." },
+      { text: "It's required by the `docker/build-push-action`", correct: false },
+      { text: "Commit hashes make images build faster", correct: false },
+    ],
+  },
+  {
+    prompt: "Where must the DockerHub username and access token be configured for the workflow to authenticate and push images?",
+    options: [
+      { text: "Directly hardcoded into the workflow YAML file", correct: false },
+      { text: "As a repository Variable (`DOCKERHUB_USERNAME`) and a repository Secret (`DOCKERHUB_TOKEN`) under repo Settings > Secrets and Variables > Actions", correct: true, explanation: "The username goes in as a repository variable and the personal access token as a repository secret, both under the Actions secrets/variables settings — never hardcoded in the YAML." },
+      { text: "In a `.env` file committed to the repo", correct: false },
+      { text: "As GitHub organization-level webhooks", correct: false },
+    ],
+  },
+  {
+    prompt: "Why is a Docker Hub Personal Access Token used instead of the account password for authentication?",
+    options: [
+      { text: "Tokens run faster than password authentication", correct: false },
+      { text: "It's the secure, revocable way to grant an application access — it can be scoped (e.g. read/write) and removed independently without changing the account password", correct: true, explanation: "The lecture frames this as the secure way of giving an application (GitHub Actions) access: you can scope it to read/write and revoke it anytime without touching your actual account credentials." },
+      { text: "DockerHub no longer supports password-based login for any purpose", correct: false },
+      { text: "Tokens are required to use the `docker/build-push-action`", correct: false },
+    ],
+  },
+  {
+    prompt: "What is `workflow_dispatch` used for in the modular multi-stage pipeline?",
+    options: [
+      { text: "It automatically triggers the pipeline on every push to any branch", correct: false },
+      { text: "It lets you manually trigger the workflow from the GitHub Actions UI, optionally choosing which specific jobs (data processing, model training, build & publish) to run", correct: true, explanation: "`workflow_dispatch` adds a manual \"Run workflow\" button in the Actions UI, and in the modular pipeline it exposes boolean inputs to selectively run individual jobs or all of them." },
+      { text: "It dispatches notifications to Slack when a workflow finishes", correct: false },
+      { text: "It schedules the workflow to run nightly", correct: false },
+    ],
+  },
+  {
+    prompt: "In the modular three-job pipeline (data-processing → model-training → build-and-publish), how does data get passed between jobs even though each job runs on its own fresh runner?",
+    options: [
+      { text: "Jobs share a persistent volume mounted on the GitHub-hosted runner", correct: false },
+      { text: "Via `actions/upload-artifact` in the producing job and `actions/download-artifact` in the consuming job", correct: true, explanation: "Because each job spins up an independent runner/environment, the pipeline explicitly uploads artifacts (processed data, preprocessor, trained model) in one job and downloads them in the next to pass state along." },
+      { text: "By committing intermediate files back to the git repository between jobs", correct: false },
+      { text: "Jobs in the same workflow always share the same runner and filesystem automatically", correct: false },
+    ],
+  },
+  {
+    prompt: "What extra validation step does the modular pipeline perform during the build-and-publish job, beyond just building and pushing the image?",
+    options: [
+      { text: "It runs a full unit test suite against the model's accuracy", correct: false },
+      { text: "It starts the built container and hits its `/health` endpoint to confirm the packaged FastAPI app comes up correctly before pushing", correct: true, explanation: "The pipeline launches the freshly built image as a test container and checks the `/health` endpoint responds correctly — real validation, not just a successful build — before cleaning up the test container and pushing the image." },
+      { text: "It scans the image for security vulnerabilities using a third-party service", correct: false },
+      { text: "It compares image size against the previous build", correct: false },
+    ],
+  },
+]} />

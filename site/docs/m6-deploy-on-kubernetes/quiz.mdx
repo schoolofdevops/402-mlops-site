@@ -1,0 +1,121 @@
+---
+sidebar_position: 90
+title: "Quiz: Deploying the Model on Kubernetes"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# Deploying the Model on Kubernetes — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "In the kind (Kubernetes-in-Docker) lab setup used in this course, what do the three \"nodes\" of the cluster actually run as?",
+    options: [
+      { text: "Three separate virtual machines", correct: false },
+      { text: "Three Docker/Podman containers", correct: true, explanation: "kind creates a control-plane node and worker nodes as containers on your local Docker/Podman engine, so a 3-node cluster is really three containers." },
+      { text: "Three cloud VM instances", correct: false },
+      { text: "Three physical servers", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the course recommend at least a 3-node kind cluster instead of enabling the single-node Kubernetes option in Docker Desktop?",
+    options: [
+      { text: "Docker Desktop's Kubernetes doesn't support NodePort services", correct: false },
+      { text: "A single node can't run more than one pod", correct: false },
+      { text: "A single node doesn't give you the feel of a real multi-node orchestration setup", correct: true, explanation: "Kubernetes is fundamentally about orchestrating across multiple nodes; a one-node setup hides scheduling and distribution concerns a real cluster has." },
+      { text: "Docker Desktop Kubernetes requires a paid license", correct: false },
+    ],
+  },
+  {
+    prompt: "What is the fundamental unit of deployment, scheduling, and scaling in Kubernetes?",
+    options: [
+      { text: "The container", correct: false },
+      { text: "The pod", correct: true, explanation: "Kubernetes schedules and scales pods, not individual containers. A pod can wrap one or more containers that must run co-located on the same node." },
+      { text: "The node", correct: false },
+      { text: "The deployment", correct: false },
+    ],
+  },
+  {
+    prompt: "Why would you put two containers (e.g., a model server and a metrics-exporter sidecar) in the same pod rather than deploying them as two separate pods?",
+    options: [
+      { text: "Pods are cheaper to run than separate deployments", correct: false },
+      { text: "Containers in the same pod are always co-located on the same host and treated as one deployable unit", correct: true, explanation: "Pods guarantee co-location; if two containers must always run together on the same host, packaging them into one pod avoids the scheduler placing them on different nodes." },
+      { text: "Kubernetes doesn't allow more than one pod per node", correct: false },
+      { text: "It's required for NodePort services to work", correct: false },
+    ],
+  },
+  {
+    prompt: "Which Kubernetes control-plane component is responsible for deciding which node a new pod should run on?",
+    options: [
+      { text: "etcd", correct: false },
+      { text: "kubelet", correct: false },
+      { text: "The scheduler", correct: true, explanation: "The scheduler evaluates a pod's resource requirements/constraints and picks the best-fit node; kubelet then runs the pod on that node." },
+      { text: "CoreDNS", correct: false },
+    ],
+  },
+  {
+    prompt: "What role does etcd play in a Kubernetes cluster?",
+    options: [
+      { text: "It's the DNS server for service discovery", correct: false },
+      { text: "It's the key-value configuration/state store for cluster objects", correct: true, explanation: "etcd stores the desired and current state of every Kubernetes object (deployments, services, pods, etc.) created via the API server." },
+      { text: "It's the client CLI used to run kubectl commands", correct: false },
+      { text: "It's the load balancer for NodePort services", correct: false },
+    ],
+  },
+  {
+    prompt: "A `kubectl create deployment model --image=... --port=8000 --replicas=2` command creates the deployment. What is a `deployment` actually maintaining underneath, according to the lecture, to keep the requested number of pod replicas running?",
+    options: [
+      { text: "A DaemonSet", correct: false },
+      { text: "A ReplicaSet", correct: true, explanation: "A Deployment manages a ReplicaSet that continuously reconciles the actual pod count against the desired replica count, replacing pods that die." },
+      { text: "A StatefulSet", correct: false },
+      { text: "A Job", correct: false },
+    ],
+  },
+  {
+    prompt: "In the lab, deleting two of the four running Streamlit pods with `kubectl delete pod ...` results in two new pods appearing shortly after. What Kubernetes behavior does this demonstrate?",
+    options: [
+      { text: "Horizontal Pod Autoscaling", correct: false },
+      { text: "The ReplicaSet's self-healing / availability guarantee", correct: true, explanation: "The ReplicaSet continuously watches actual vs. desired replica count and creates replacement pods automatically — this is availability/self-healing, not autoscaling or a version rollout." },
+      { text: "A rolling update", correct: false },
+      { text: "DNS-based service discovery", correct: false },
+    ],
+  },
+  {
+    prompt: "When you run `kubectl set image deployment/streamlit streamlit=<new-image>` to roll out a new app version, what happens to the existing pods while new ones come up?",
+    options: [
+      { text: "All old pods are terminated immediately before new ones start", correct: false },
+      { text: "Kubernetes creates a new ReplicaSet and rolls new pods in batches while old pods keep serving traffic until replaced", correct: true, explanation: "This is the default rolling-update strategy: a new ReplicaSet is created, and pods are replaced gradually so the service has zero downtime during the version switch." },
+      { text: "The deployment is paused until you manually delete the old pods", correct: false },
+      { text: "A completely new deployment object is created", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the course expose the Streamlit and model services on fixed NodePort values (30000 and 30100) rather than arbitrary ports in the valid NodePort range?",
+    options: [
+      { text: "Kubernetes only allows those two exact ports", correct: false },
+      { text: "The kind cluster config maps those specific host ports so they're reachable at localhost", correct: true, explanation: "The kind `cluster.yaml` used in the lab pre-maps specific container ports (like 30000/30100) to the host, so only those chosen ports are actually reachable from your browser at localhost." },
+      { text: "NodePort services require even-numbered ports", correct: false },
+      { text: "Those ports are reserved by CoreDNS", correct: false },
+    ],
+  },
+  {
+    prompt: "Instead of hardcoding `http://localhost:8000` in the Streamlit app to reach the model API, the course has you use the model's Kubernetes Service name (e.g., `http://model:8000`). What makes this work inside the cluster?",
+    options: [
+      { text: "Kubernetes automatically rewrites hardcoded IPs", correct: false },
+      { text: "CoreDNS registers each Service name and resolves it to the Service's cluster IP, routing to the backing pods", correct: true, explanation: "Every Kubernetes Service gets a DNS entry via CoreDNS running in the cluster; other pods can reach it by service name instead of a hardcoded IP or localhost." },
+      { text: "The model pod is manually assigned the hostname \"model\"", correct: false },
+      { text: "NodePort services always respond to their own name", correct: false },
+    ],
+  },
+  {
+    prompt: "What is the purpose of running `kubectl create deployment ... --dry-run=client -o yaml` instead of just letting the imperative command apply directly?",
+    options: [
+      { text: "It validates the YAML against a remote schema server", correct: false },
+      { text: "It generates the equivalent YAML manifest without actually creating the resource, so you can save and version-control it", correct: true, explanation: "`--dry-run=client -o yaml` is a quick trick to generate a manifest matching what the imperative command would have created, without touching the cluster — letting you commit it to Git and manage it declaratively going forward." },
+      { text: "It automatically applies the change and also writes a backup file", correct: false },
+      { text: "It's required before you can use `kubectl apply`", correct: false },
+    ],
+  },
+]} />

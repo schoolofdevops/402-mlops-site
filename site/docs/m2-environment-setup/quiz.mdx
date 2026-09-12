@@ -1,0 +1,121 @@
+---
+sidebar_position: 90
+title: "Quiz: Setting up your MLOps Workstation"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# Setting up your MLOps Workstation — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "What minimum hardware does the instructor say should work for the local (pre-Kubernetes) parts of this project?",
+    options: [
+      { text: "2 cores, 4 GB RAM, 10 GB disk space", correct: true, explanation: "The lecture states \"anything like two cores, four GB of RAM and ten GB of disk space should work,\" though 4-8 GB RAM is recommended and Kubernetes later may need more." },
+      { text: "8 cores, 32 GB RAM, 100 GB disk space", correct: false },
+      { text: "1 core, 2 GB RAM, 5 GB disk space", correct: false },
+      { text: "4 cores, 16 GB RAM, 50 GB disk space", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the course require Docker or Podman from the very start, well before the Kubernetes sections?",
+    options: [
+      { text: "Because MLflow, the model package, and the FastAPI/Streamlit stack all run as containers before anything touches Kubernetes", correct: true, explanation: "MLflow, the model container, and the Docker Compose FastAPI/Streamlit setup all run on Docker/Podman well before the Kubernetes deployment sections." },
+      { text: "Because Kubernetes cannot be installed without Docker present", correct: false },
+      { text: "Because Docker is required to run Jupyter notebooks", correct: false },
+      { text: "Because Python virtual environments depend on Docker", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the instructor recommend Podman instead of Docker Desktop specifically for a company-provided laptop?",
+    options: [
+      { text: "Podman offers no licensing restriction for commercial/office use, while Docker Desktop's free tier has business-use licensing terms", correct: true, explanation: "Docker Desktop is free for personal use but restricted under its licensing terms for business/office use; Podman has no such constraint and is presented as a drop-in replacement." },
+      { text: "Podman is faster than Docker at every operation", correct: false },
+      { text: "Podman is the only tool compatible with Docker Compose files", correct: false },
+      { text: "Docker cannot run on Windows or Linux machines", correct: false },
+    ],
+  },
+  {
+    prompt: "What is Docker Compose specifically used for in this course's workflow?",
+    options: [
+      { text: "Running and connecting more than one container together, such as the FastAPI service and its client app", correct: true, explanation: "Docker Compose lets you run multiple connected containers, used here for services like MLflow and later for the FastAPI + Streamlit setup." },
+      { text: "Replacing the need for a Dockerfile entirely", correct: false },
+      { text: "Managing Python virtual environments", correct: false },
+      { text: "Building Kubernetes manifests automatically", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the course set up a dedicated Python virtual environment for the project instead of using the system Python directly?",
+    options: [
+      { text: "To isolate project-specific package versions from other projects and avoid dependency conflicts", correct: true, explanation: "Different projects need different libraries and library versions; a virtual environment per project avoids those conflicting with each other or with the system installation." },
+      { text: "Because the system Python cannot run Jupyter notebooks", correct: false },
+      { text: "Because virtual environments are required to use Docker", correct: false },
+      { text: "To automatically update Python to the latest version", correct: false },
+    ],
+  },
+  {
+    prompt: "Why did the instructor choose `uv` over alternatives like `venv` or `conda` for this course?",
+    options: [
+      { text: "It's simple, fast (written in Rust), and lightweight for creating virtual environments and managing packages", correct: true, explanation: "`uv` is described as a fast, Rust-based package/environment manager chosen for its speed and simplicity compared to `conda` or plain Python venv." },
+      { text: "It's the only tool that supports Jupyter notebooks", correct: false },
+      { text: "It's required by FastAPI", correct: false },
+      { text: "It automatically deploys to Kubernetes", correct: false },
+    ],
+  },
+  {
+    prompt: "Per the lab instructions, which command creates the project's virtual environment with a specific Python version?",
+    options: [
+      { text: "`uv venv --python 3.11`", correct: true, explanation: "Lab 3 specifies `uv venv --python 3.11` followed by `source .venv/bin/activate` to activate it." },
+      { text: "`python -m venv .venv`", correct: false },
+      { text: "`conda create -n house-price python=3.11`", correct: false },
+      { text: "`pip install virtualenv`", correct: false },
+    ],
+  },
+  {
+    prompt: "After activating the virtual environment, how does the lab install all the project's dependencies?",
+    options: [
+      { text: "`uv pip install -r requirements.txt`", correct: true, explanation: "Lab 3 runs `uv pip install -r requirements.txt` to install the roughly 50+ packages the project needs." },
+      { text: "`pip freeze > requirements.txt`", correct: false },
+      { text: "`docker compose up requirements`", correct: false },
+      { text: "`uv init requirements.txt`", correct: false },
+    ],
+  },
+  {
+    prompt: "Why must you fork the `house-price-predictor` repository into your own GitHub account rather than cloning the upstream repo directly?",
+    options: [
+      { text: "You need write access to commit your own changes, which you don't have on the upstream repository", correct: true, explanation: "Without forking, you don't own the upstream repository and can't push commits to it; forking gives you your own copy to work in." },
+      { text: "Forking is required to install Docker", correct: false },
+      { text: "The upstream repo cannot be cloned directly at all", correct: false },
+      { text: "Forking automatically sets up your virtual environment", correct: false },
+    ],
+  },
+  {
+    prompt: "In the project scaffold, what is the purpose of the \"model config\" file that appears after model training is decided?",
+    options: [
+      { text: "It acts as the handoff point between the data scientist's experimentation work and the ML engineer's training code", correct: true, explanation: "The lecture describes the model config as the key communication artifact: the data scientist fixes the configuration, and the ML engineer's training code reads it to reproduce/train the model." },
+      { text: "It stores the raw, unprocessed dataset", correct: false },
+      { text: "It configures the Docker Compose network", correct: false },
+      { text: "It defines the Kubernetes deployment manifest", correct: false },
+    ],
+  },
+  {
+    prompt: "When MLflow is launched via Docker Compose in this course, which port is it exposed on, and why not the default?",
+    options: [
+      { text: "Port 5555, chosen to avoid a conflict with something else already using port 5000", correct: true, explanation: "The instructor maps MLflow to host port 5555 specifically because port 5000 was already in use on their machine, and confirms this with `docker compose ps`." },
+      { text: "Port 8080, the standard MLflow default", correct: false },
+      { text: "Port 3000, matching the Streamlit app", correct: false },
+      { text: "Port 443, for HTTPS", correct: false },
+    ],
+  },
+  {
+    prompt: "According to the lecture, why does the instructor recommend using VS Code's notebook support instead of the standalone Jupyter Lab browser UI?",
+    options: [
+      { text: "VS Code gives the same notebook execution ability (running cells, selecting the Python environment) without needing a separate browser-based server", correct: true, explanation: "After demonstrating Jupyter Lab, the instructor shuts it down and switches to VS Code, noting it offers the same notebook experience (cell execution, environment selection) without running a separate Jupyter server." },
+      { text: "Jupyter Lab cannot open `.ipynb` files at all", correct: false },
+      { text: "VS Code is required to install `uv`", correct: false },
+      { text: "Jupyter Lab does not support Python, only R and shell", correct: false },
+    ],
+  },
+]} />

@@ -1,0 +1,103 @@
+---
+sidebar_position: 90
+title: "Quiz: The ML Lifecycle and the Project You Will Build"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# The ML Lifecycle and the Project You Will Build — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "In the house price prediction use case, which of these is the target variable (output)?",
+    options: [
+      { text: "Square footage", correct: false },
+      { text: "Number of bedrooms", correct: false },
+      { text: "The predicted house price", correct: true, explanation: "Square footage, bedrooms, location, age, and condition are the input features; the house price being predicted is the output feature / target variable." },
+      { text: "Property age", correct: false },
+    ],
+  },
+  {
+    prompt: "What is an \"engineered feature\" in this use case?",
+    options: [
+      { text: "A feature collected directly from the raw dataset with no changes", correct: false },
+      { text: "A new feature derived from existing ones, such as property age from year built, or price per square foot", correct: true, explanation: "The lecture gives exactly these two examples: deriving \"age of the property\" from year built, and deriving \"price per square foot\" from square footage and price." },
+      { text: "A feature that is removed before training", correct: false },
+      { text: "The final trained model file", correct: false },
+    ],
+  },
+  {
+    prompt: "What type of ML problem is house price prediction?",
+    options: [
+      { text: "Classification", correct: false },
+      { text: "Regression", correct: true, explanation: "Predicting a continuous value like price is described as a regression problem, contrasted with classification examples like spam/not-spam." },
+      { text: "Clustering", correct: false },
+      { text: "Reinforcement learning", correct: false },
+    ],
+  },
+  {
+    prompt: "What is \"inference\" as defined in the lecture?",
+    options: [
+      { text: "Cleaning and preparing raw training data", correct: false },
+      { text: "Making a prediction on new, unseen data using what the model has already learned", correct: true, explanation: "Inference is described as sending new/unseen data to the trained model and getting a prediction back, based on patterns and correlations learned from historical data." },
+      { text: "Selecting which algorithm to use during experimentation", correct: false },
+      { text: "Writing the Dockerfile for the model", correct: false },
+    ],
+  },
+  {
+    prompt: "In the end-to-end workflow, what comes first?",
+    options: [
+      { text: "Model experimentation", correct: false },
+      { text: "Data engineering — collecting and cleaning raw data", correct: true, explanation: "Everything starts with data engineering: collecting raw (structured or unstructured) data and cleaning it so data scientists can work with it." },
+      { text: "Building the CI pipeline", correct: false },
+      { text: "Deploying to Kubernetes", correct: false },
+    ],
+  },
+  {
+    prompt: "What is the purpose of EDA (Experimental Data Analysis) in this workflow?",
+    options: [
+      { text: "To containerize the model", correct: false },
+      { text: "To figure out which features actually correlate with the target and matter for prediction", correct: true, explanation: "EDA is where you analyze the data to see which features (e.g., square footage) correlate strongly with price, and which (e.g., possibly bathrooms) may not matter much." },
+      { text: "To deploy the trained model to production", correct: false },
+      { text: "To configure the CI/CD pipeline", correct: false },
+    ],
+  },
+  {
+    prompt: "What is the role of the \"preprocessor\" described in the end-to-end lifecycle?",
+    options: [
+      { text: "It trains the final model on historical data", correct: false },
+      { text: "It transforms incoming request data at inference time into the same feature format the model was trained on", correct: true, explanation: "The preprocessor sits between an incoming client request and the model, converting raw input into the engineered features the model expects, both matters at inference time." },
+      { text: "It builds the Docker image for the model", correct: false },
+      { text: "It monitors the model for data drift", correct: false },
+    ],
+  },
+  {
+    prompt: "According to the lecture, where does \"the real MLOps work\" begin in this workflow?",
+    options: [
+      { text: "During data collection", correct: false },
+      { text: "During EDA", correct: false },
+      { text: "Once the model is packaged — writing the Dockerfile, setting up docker-compose, and building CI/CD pipelines", correct: true, explanation: "The lecture explicitly marks the shift into MLOps territory at model packaging (Dockerfile, docker-compose dev environments) and everything after — CI pipelines, CD, monitoring." },
+      { text: "During feature engineering by the data scientist", correct: false },
+    ],
+  },
+  {
+    prompt: "Which tool does the course use to build the CI pipeline, and what alternative is mentioned for more complex, multi-stage DAG-based workflows?",
+    options: [
+      { text: "Jenkins for CI; Terraform for complex workflows", correct: false },
+      { text: "GitHub Actions for CI; Argo Workflow (or Kubeflow/Metaflow) for complex DAG-based pipelines", correct: true, explanation: "The course sticks to Docker, Docker Compose, and GitHub Actions, but mentions Argo Workflow (a DAG tool), Kubeflow, or Metaflow as options for more sophisticated, multi-stage pipelines." },
+      { text: "CircleCI for CI; Seldon Core for complex workflows", correct: false },
+      { text: "GitLab CI for CI; Prometheus for complex workflows", correct: false },
+    ],
+  },
+  {
+    prompt: "What does \"model drift\" mean, and why is it hard to detect automatically?",
+    options: [
+      { text: "The model crashes and throws an error, which is caught by standard monitoring", correct: false },
+      { text: "The data distribution changes over time so the model's predictions become inaccurate, without throwing any error", correct: true, explanation: "Drift happens when the statistical relationship between inputs and the target changes; the model keeps running and returning predictions, just wrong ones — it doesn't throw an error, so it needs dedicated monitoring to detect." },
+      { text: "The model's Docker container runs out of memory", correct: false },
+      { text: "The CI pipeline fails to build a new image", correct: false },
+    ],
+  },
+]} />

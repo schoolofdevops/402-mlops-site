@@ -1,0 +1,139 @@
+---
+sidebar_position: 90
+title: "Quiz: MLOps Foundations and Context"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# MLOps Foundations and Context — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "According to the lecture, what percentage of machine learning projects are estimated to never make it to production?",
+    options: [
+      { text: "25%", correct: false },
+      { text: "50%", correct: false },
+      { text: "87%", correct: true, explanation: "The lecture cites that 87% of ML projects are \"shelved\" and never reach production, attributing this to the gap between the data scientist's notebook world and the realities of production." },
+      { text: "95%", correct: false },
+    ],
+  },
+  {
+    prompt: "Why can't a data scientist's Jupyter notebook workflow simply be carried into production unchanged?",
+    options: [
+      { text: "Notebooks cannot run Python code", correct: false },
+      { text: "Production has live, changing data, latency and scale requirements, and business metrics the fixed, static notebook data never had to account for", correct: true, explanation: "The lecture contrasts the \"dream world\" (fixed datasets, academic benchmarks, no latency pressure) with production (live data, strict latency, changing business metrics), which is the core gap MLOps exists to close." },
+      { text: "Notebooks don't support machine learning libraries", correct: false },
+      { text: "Production systems don't allow any Python-based code", correct: false },
+    ],
+  },
+  {
+    prompt: "In the restaurant analogy used to explain MLOps, what does \"revision controlling the recipe\" represent?",
+    options: [
+      { text: "Renaming menu items", correct: false },
+      { text: "Tracking exactly which parameters/ingredients were used in each experiment so results can be reliably reproduced", correct: true, explanation: "Just as a restaurant needs a written-down recipe to give a consistent experience every time, MLOps needs revision control over data, features, and hyperparameters so an experiment's results can be reproduced and taught to others (or other models)." },
+      { text: "Hiring more chefs", correct: false },
+      { text: "Reducing the restaurant's operating costs", correct: false },
+    ],
+  },
+  {
+    prompt: "Which of the following is NOT one of the five core MLOps practices described in the lecture?",
+    options: [
+      { text: "Revision control (code, data, and models)", correct: false },
+      { text: "Automation (CI/CD pipelines for training, testing, deployment)", correct: false },
+      { text: "Manually re-writing the entire application in a new programming language for every release", correct: true, explanation: "The five core practices given are revision control, automation/pipelines, experiment tracking, continuous monitoring, and governance — rewriting the app in a new language every release is not one of them and isn't a real MLOps practice." },
+      { text: "Experiment tracking and governance", correct: false },
+    ],
+  },
+  {
+    prompt: "Why did MLOps emerge as its own discipline instead of just being called \"DevOps for machine learning\"?",
+    options: [
+      { text: "Because DevOps tools cannot run on cloud infrastructure", correct: false },
+      { text: "Because ML systems have unique challenges DevOps doesn't address — data dependency, silent failure/model drift, and the need to track experiments (parameters, hyperparameters, features)", correct: true, explanation: "The lecture explains that data dependency, models failing silently (drift) rather than throwing errors, and the need to track and reproduce experiments are ML-specific challenges that plain DevOps practices don't cover." },
+      { text: "Because machine learning does not use any version control", correct: false },
+      { text: "Because DevOps and MLOps use completely unrelated programming languages", correct: false },
+    ],
+  },
+  {
+    prompt: "In the MLOps platform \"layer model\" described in the DevOps-vs-MLOps lecture, what sits on top of the infrastructure layer and data layer?",
+    options: [
+      { text: "The model layer (experiment tracking, training) and then the monitoring layer", correct: true, explanation: "The platform is described as infrastructure (cloud/Kubernetes) → data layer (data ops) → model layer/model ops (experiment tracking, training) → monitoring layer on top, tracking model-specific concerns like drift." },
+      { text: "A second, duplicate infrastructure layer", correct: false },
+      { text: "Nothing — infrastructure and data are the only two layers", correct: false },
+      { text: "A dedicated billing and invoicing layer", correct: false },
+    ],
+  },
+  {
+    prompt: "According to the \"three approaches to AI\" lecture, which use case is traditional machine learning still described as excelling at, over LLMs or agents?",
+    options: [
+      { text: "Open-ended conversational chat", correct: false },
+      { text: "Fraud detection and demand forecasting on structured data", correct: true, explanation: "The lecture states traditional ML still excels at fraud detection, forecasting (e.g., demand, ETAs), recommendation systems, image classification, and time-series analysis — problems with structured data and a well-defined target." },
+      { text: "Summarizing long documents", correct: false },
+      { text: "Autonomous multi-step task execution", correct: false },
+    ],
+  },
+  {
+    prompt: "Why do MLOps, LLMOps, and Agentic AI Ops use different evaluation metrics, per the lecture?",
+    options: [
+      { text: "They don't — all three are evaluated identically", correct: false },
+      { text: "Because each solves a different kind of problem: MLOps cares about model accuracy and deployment speed, LLMOps cares about response quality and hallucination rate, and Agentic AI Ops cares about task completion", correct: true, explanation: "The lecture explicitly maps each approach to a distinct primary metric: MLOps → model accuracy/deployment time, LLMOps → quality of response/hallucination, Agentic AI → completion of tasks." },
+      { text: "Evaluation metrics are decided randomly by each company", correct: false },
+      { text: "Only Agentic AI systems can be evaluated at all", correct: false },
+    ],
+  },
+  {
+    prompt: "What caused the \"AI winter\" described in the story of MLOps' evolution?",
+    options: [
+      { text: "A worldwide shortage of computer hardware", correct: false },
+      { text: "After neural networks emerged in the 1960s, there was no real-world application built with them by the 1970s, so funding got cut", correct: true, explanation: "The lecture describes neural networks emerging in the 1960s but, by the 1970s, no practical application existed yet, leading to disillusionment, funding cuts, and the AI winter until narrow expert systems revived interest in the 1980s." },
+      { text: "Governments banned AI research", correct: false },
+      { text: "The invention of GPUs made neural networks obsolete", correct: false },
+    ],
+  },
+  {
+    prompt: "Why was Google's 2017 \"Attention Is All You Need\" paper (introducing the transformer) a turning point in the story?",
+    options: [
+      { text: "It reduced the cost of GPUs", correct: false },
+      { text: "It let models understand meaning and context across large amounts of text, rather than just literal keyword matching — enabling smarter search, translation, and eventually GPT", correct: true, explanation: "Earlier models understood only literal text; the transformer/attention mechanism let models learn from large volumes of text and infer meaning, which the lecture credits as the direct lineage to GPT-2, GPT-3, and the LLM explosion." },
+      { text: "It eliminated the need for any training data", correct: false },
+      { text: "It was the first paper to describe neural networks", correct: false },
+    ],
+  },
+  {
+    prompt: "Per the lecture, what specific \"software\" problem — familiar from traditional engineering — led directly to the birth of MLOps between 2015 and 2018?",
+    options: [
+      { text: "Data scientists refused to use Python", correct: false },
+      { text: "The \"works on my laptop\" problem: models that worked in a data scientist's local/experimental setup broke or stopped working once companies tried to run them in staging or production at scale", correct: true, explanation: "As companies like Amazon and Netflix tried to industrialize ML, they hit the same \"works on my machine, breaks in prod\" problem long known in software engineering — which, applied to ML, is what MLOps practices (reproducibility, versioning, automation, monitoring) emerged to solve." },
+      { text: "Cloud providers stopped offering free tiers", correct: false },
+      { text: "A shortage of available training data", correct: false },
+    ],
+  },
+  {
+    prompt: "According to the \"emergence of the MLOps engineer\" lecture, what is a major downside of relying on \"full-stack\" data scientists to do everything themselves (data, infra, deployment, monitoring) instead of cross-functional teams?",
+    options: [
+      { text: "It is illegal in most countries", correct: false },
+      { text: "They get burned out managing infrastructure/scaling concerns outside their expertise, it's hard to hire for, and it doesn't scale well", correct: true, explanation: "The lecture argues full-stack data scientists end up stretched across infrastructure, cloud, and scaling work they aren't specialized in, leading to burnout, high hiring cost/difficulty, and poor scalability — cross-functional teams work better." },
+      { text: "It always produces more accurate models", correct: false },
+      { text: "It eliminates the need for any DevOps knowledge company-wide", correct: false },
+    ],
+  },
+  {
+    prompt: "What are the two professional \"streams\" the lecture identifies as MLOps roles evolve, comparable to DevOps practitioner vs. DevOps engineer?",
+    options: [
+      { text: "Data scientist and graphic designer", correct: false },
+      { text: "MLOps practitioner (e.g., ML engineers applying MLOps practices) and MLOps/AI platform engineer (infrastructure specialists with ML knowledge, spanning MLOps, LLMOps, and Agentic AI Ops)", correct: true, explanation: "The lecture draws a direct parallel to DevOps: MLOps practitioners are like developers applying MLOps day-to-day, while MLOps/AI platform engineers are the infrastructure specialists whose scope now spans MLOps, LLMOps, and Agentic AI Ops." },
+      { text: "Frontend engineer and backend engineer", correct: false },
+      { text: "Sales engineer and support engineer", correct: false },
+    ],
+  },
+  {
+    prompt: "In the Netflix and Uber case studies, what problem did Metaflow and Michelangelo respectively solve?",
+    options: [
+      { text: "Metaflow reduced Netflix's cloud storage costs; Michelangelo automated Uber's marketing emails", correct: false },
+      { text: "Metaflow gave Netflix data scientists a Python-native way to manage the end-to-end ML workflow without fighting infrastructure; Michelangelo gave Uber a centralized platform (including a shared feature store) to stop teams from duplicating models and features", correct: true, explanation: "Metaflow was built to bring tooling to data scientists in a language (Python) they already knew, cutting time-to-deployment; Michelangelo unified Uber's many independently-built models (pricing, ETA, matching) around a centralized feature store, enabling a 10x jump in daily batch predictions." },
+      { text: "Both tools were used exclusively for customer support chatbots", correct: false },
+      { text: "Metaflow trains large language models; Michelangelo is a monitoring dashboard only", correct: false },
+    ],
+  },
+]} />

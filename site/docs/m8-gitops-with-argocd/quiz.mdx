@@ -1,0 +1,121 @@
+---
+sidebar_position: 90
+title: "Quiz: Continuous Delivery with GitOps and Argo CD"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# Continuous Delivery with GitOps and Argo CD — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "Roughly when and why did GitOps emerge as a concept?",
+    options: [
+      { text: "Around 2010, driven by the rise of virtual machines", correct: false },
+      { text: "Around 2017, when Kubernetes became popular and teams needed a way to set up continuous delivery for apps running on it", correct: true, explanation: "The lecture places GitOps' origin around 2017, tied directly to Kubernetes adoption and the need for CD tooling on top of it." },
+      { text: "Around 2020, in response to the growth of large language models", correct: false },
+      { text: "Around 2005, alongside the first CI servers like Jenkins", correct: false },
+    ],
+  },
+  {
+    prompt: "Which of the following is one of the four core principles of GitOps as described in the lecture?",
+    options: [
+      { text: "Configuration should be stored only locally on the deployment server", correct: false },
+      { text: "Everything should be defined as 100% declarative configuration", correct: true, explanation: "Principle one is that everything should be declarative — in this course's case, expressed as Kubernetes YAML." },
+      { text: "Changes should always be applied manually by an engineer", correct: false },
+      { text: "Every deployment must use a separate git repository", correct: false },
+    ],
+  },
+  {
+    prompt: "After defining configuration as declarative code, what does GitOps principle two say you should do with it?",
+    options: [
+      { text: "Store the desired state in git, since git is the de facto revision control system", correct: true, explanation: "Principle two is storing the desired state in git." },
+      { text: "Store it in a spreadsheet for the team to track manually", correct: false },
+      { text: "Email it to the operations team for manual application", correct: false },
+      { text: "Keep it only in the CI server's local cache", correct: false },
+    ],
+  },
+  {
+    prompt: "What does GitOps principle three, \"apply approved changes automatically,\" actually involve setting up?",
+    options: [
+      { text: "A single engineer with sole approval authority and no code review", correct: false },
+      { text: "A git-based workflow with code review, pull requests, and branches so approved changes flow through automatically", correct: true, explanation: "It's implemented via a PR-based, multi-branch git workflow (e.g., merging from main to a release branch) that developers already use for code review." },
+      { text: "A cron job that redeploys every hour regardless of changes", correct: false },
+      { text: "Manual kubectl apply commands run by hand for every change", correct: false },
+    ],
+  },
+  {
+    prompt: "Principle four of GitOps is to \"check and correct\" using a software agent. Which tools does the lecture name for this role?",
+    options: [
+      { text: "Jenkins or CircleCI", correct: false },
+      { text: "Terraform or Ansible", correct: false },
+      { text: "Argo CD or Flux CD", correct: true, explanation: "The lecture names Argo CD and Flux CD as the agents that continuously reconcile the cluster to match the approved state in git." },
+      { text: "Prometheus or Grafana", correct: false },
+    ],
+  },
+  {
+    prompt: "Can GitOps principles be applied outside of Kubernetes?",
+    options: [
+      { text: "No, GitOps only ever applies to Kubernetes workloads", correct: false },
+      { text: "Yes — the lecture mentions infrastructure-as-code tools like Terrateam and Atlantis as examples beyond Kubernetes", correct: true, explanation: "The lecture notes GitOps principles extend beyond Kubernetes, citing IaC tools such as Terrateam and Atlantis, though the course itself focuses on the Kubernetes case." },
+      { text: "Yes, but only for mobile app deployments", correct: false },
+      { text: "No, GitOps requires a container runtime by definition", correct: false },
+    ],
+  },
+  {
+    prompt: "What is Kustomize, as introduced in the GitOps setup lecture?",
+    options: [
+      { text: "A replacement for git used to store desired state", correct: false },
+      { text: "A tool for managing Kubernetes manifests and maintaining different versions of them, used as an alternative (or complement) to Helm", correct: true, explanation: "Kustomize is described as useful for managing manifests and their variants, an alternative to writing Helm charts (or usable alongside them)." },
+      { text: "A monitoring tool for tracking GitOps sync status", correct: false },
+      { text: "Argo CD's built-in web UI", correct: false },
+    ],
+  },
+  {
+    prompt: "In Argo CD, what kind of object is \"Application,\" and where does it come from?",
+    options: [
+      { text: "A native Kubernetes resource, built into every cluster by default", correct: false },
+      { text: "A Custom Resource (CRD) provided by Argo CD, not a native Kubernetes object", correct: true, explanation: "Application is a Custom Resource Definition added by Argo CD; it doesn't exist in Kubernetes without Argo CD installed, similar to how Keda adds ScaledObject." },
+      { text: "A ConfigMap that stores Argo CD's own settings", correct: false },
+      { text: "A shell script that Argo CD runs on a schedule", correct: false },
+    ],
+  },
+  {
+    prompt: "What are the two main things you configure in an Argo CD Application spec?",
+    options: [
+      { text: "The CPU limit and the memory limit", correct: false },
+      { text: "The source (which git repo, branch/revision, and path) and the destination (which cluster and namespace to deploy to)", correct: true, explanation: "The spec maps a source (git repository, revision, path) to a destination (target cluster and namespace)." },
+      { text: "The Docker base image and the entrypoint command", correct: false },
+      { text: "The ingress hostname and the TLS certificate", correct: false },
+    ],
+  },
+  {
+    prompt: "While creating an Argo CD Application named \"House Price Predictor\" through the UI, what error occurred and why?",
+    options: [
+      { text: "The repository URL was invalid", correct: false },
+      { text: "The application name was rejected because it wasn't lowercase — Kubernetes-style names must be lowercase, subdomain-compliant strings", correct: true, explanation: "Argo CD rejected the name for not being a valid lowercase subdomain-style identifier, so it had to be renamed (e.g., to \"house-price-ml\")." },
+      { text: "The sync policy field was left empty", correct: false },
+      { text: "The destination namespace did not exist yet", correct: false },
+    ],
+  },
+  {
+    prompt: "After the CI pipeline pushed a new image tagged \"latest\" to Docker Hub, the running Streamlit pod in the local kind cluster didn't pick up the new version even with `imagePullPolicy: Always`. What was the root cause?",
+    options: [
+      { text: "Argo CD had lost its connection to the git repository", correct: false },
+      { text: "The kind cluster's nodes had already cached the \"latest\" image locally, so the node-level container runtime didn't re-pull it even though a newer \"latest\" existed in the registry", correct: true, explanation: "Because kind runs Kubernetes nodes as Docker containers, the image was already cached on those nodes; using the mutable \"latest\" tag masked this instead of pulling the genuinely new image." },
+      { text: "The Docker Hub account had run out of storage", correct: false },
+      { text: "The GitHub Actions workflow silently failed to publish the image", correct: false },
+    ],
+  },
+  {
+    prompt: "Which fix ultimately forced the kind cluster to run the newly published image?",
+    options: [
+      { text: "Deleting the image via `docker image rm` on the host machine", correct: false },
+      { text: "Removing the cached image from inside the kind nodes with `crictl` (since Docker isn't installed inside the nodes) and/or running `kubectl rollout restart deployment`", correct: true, explanation: "Since the nodes use a CRI runtime (not Docker) internally, `crictl` was needed to remove the stale cached image, and a rollout restart forced the pod to re-pull; the lecture notes using versioned tags instead of \"latest\" avoids this entirely." },
+      { text: "Reinstalling Argo CD from scratch", correct: false },
+      { text: "Switching the sync policy from automatic to manual", correct: false },
+    ],
+  },
+]} />

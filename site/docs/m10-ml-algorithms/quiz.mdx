@@ -1,0 +1,121 @@
+---
+sidebar_position: 90
+title: "Quiz: ML Algorithms Explained with Analogies"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# ML Algorithms Explained with Analogies — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "What is a \"model\" in machine learning, according to the module introduction?",
+    options: [
+      { text: "A fixed set of if-else business rules written by a data scientist", correct: false },
+      { text: "An algorithm that has learned from data (features + hyperparameters) and is ready to make predictions on new, similar data", correct: true, explanation: "The intro defines a model as \"an algorithm which has learned from your data based on certain hyperparameters as well as the features, and it is ready to infer.\"" },
+      { text: "A database schema that stores historical prediction results", correct: false },
+      { text: "A dashboard that visualizes ML output", correct: false },
+    ],
+  },
+  {
+    prompt: "In the house-price example, why is linear regression a good fit for that problem?",
+    options: [
+      { text: "Because it directly classifies houses into \"cheap\" or \"expensive\" categories", correct: false },
+      { text: "Because the price is a continuous number that can be approximated by a straight-line relationship with features like square footage, bedrooms, and age", correct: true, explanation: "Priya's house-price formula (base price + price per sqft + per bedroom − age discount) plots as an approximately straight line, which is a regression, not a classification." },
+      { text: "Because it works well even with very little data and no numeric features", correct: false },
+      { text: "Because it creates a decision boundary between two classes", correct: false },
+    ],
+  },
+  {
+    prompt: "Which of these is explicitly called out as a poor fit for linear regression?",
+    options: [
+      { text: "Predicting sales based on advertising spend", correct: false },
+      { text: "Forecasting temperature vs. ice cream sales", correct: false },
+      { text: "Predicting house prices from square footage and bedrooms", correct: false },
+      { text: "Diagnosing whether a patient has a disease (yes/no)", correct: true, explanation: "The lecture says linear regression \"is definitely not a good fit\" for yes/no diagnosis-style questions; that's logistic regression's use case." },
+    ],
+  },
+  {
+    prompt: "In the disease-diagnosis example, what does logistic regression's S-shaped curve actually output?",
+    options: [
+      { text: "A dollar-value price prediction", correct: false },
+      { text: "A probability between 0 and 1, compared against a decision boundary (e.g., 0.5) to decide yes/no", correct: true, explanation: "Dr. Vikram's model outputs a probability of disease; anything below the 0.5 decision boundary is \"no,\" above it is \"high risk.\"" },
+      { text: "A ranked list of similar patients", correct: false },
+      { text: "A cluster assignment for the patient", correct: false },
+    ],
+  },
+  {
+    prompt: "What makes decision trees especially well-suited to the loan-approval use case (Raj at the bank)?",
+    options: [
+      { text: "They require the least amount of training data of any algorithm", correct: false },
+      { text: "They produce a simple, highly visual flowchart of yes/no checks (income → debt-to-income ratio → credit score) that's easy to explain to a customer", correct: true, explanation: "The lecture highlights decision trees as simple, visual, and easy to explain — an exception among ML models on explainability." },
+      { text: "They always outperform ensemble methods in accuracy", correct: false },
+      { text: "They only work with continuous numeric data", correct: false },
+    ],
+  },
+  {
+    prompt: "How does random forest improve on a single decision tree, per the \"second medical opinion\" analogy?",
+    options: [
+      { text: "It replaces trees with neural network layers", correct: false },
+      { text: "It trains multiple decision trees, each seeing a slightly different view of the data, and combines their predictions by majority vote — reducing individual bias and overfitting", correct: true, explanation: "Like asking four doctors for a second/third opinion, random forest aggregates many trees' votes; \"majority is usually right.\"" },
+      { text: "It only asks one very deep tree the same question repeatedly", correct: false },
+      { text: "It skips training and uses a lookup table instead", correct: false },
+    ],
+  },
+  {
+    prompt: "What does the ripe-vs-unripe fruit sorting example illustrate about support vector machines (SVM)?",
+    options: [
+      { text: "SVM finds the optimal decision boundary that maximizes the margin between two clearly separable groups", correct: true, explanation: "Meera's SVM creates a clear separating boundary with maximum margin between ripe and unripe fruit based on features like size and color." },
+      { text: "SVM is best suited for problems with massive amounts of training data", correct: false },
+      { text: "SVM predicts continuous prices, like linear regression", correct: false },
+      { text: "SVM works by asking a sequence of yes/no questions, like a decision tree", correct: false },
+    ],
+  },
+  {
+    prompt: "Which use cases does the lecture explicitly associate with SVM?",
+    options: [
+      { text: "Player auction price prediction", correct: false },
+      { text: "Loan approval questionnaires", correct: false },
+      { text: "Image classification (cat vs. dog), text categorization, and handwriting recognition", correct: true, explanation: "SVM is called out for clean-separation problems, especially with limited data: image classification, text categorization, handwriting recognition, manufacturing defect detection." },
+      { text: "GitOps continuous delivery", correct: false },
+    ],
+  },
+  {
+    prompt: "In the handwritten-digit-recognition example, what role do a neural network's multiple hidden layers play?",
+    options: [
+      { text: "They store the raw pixel data unchanged for later retrieval", correct: false },
+      { text: "Each layer progressively detects more complex patterns — from basic edges/curves in early layers to full digit shapes near the output layer", correct: true, explanation: "Arjun's digit recognizer moves from an input (pixelated) layer, through hidden layers that detect edges then combinations of edges, to an output layer that predicts the digit with a confidence score." },
+      { text: "They act as a lookup table mapping digits to prices", correct: false },
+      { text: "They replace the need for an output layer entirely", correct: false },
+    ],
+  },
+  {
+    prompt: "When does the lecture recommend reaching for neural networks over simpler models?",
+    options: [
+      { text: "When you have very little data and need high explainability", correct: false },
+      { text: "When you need complex pattern recognition across multimodal data (images, speech, text), have lots of data, and accuracy matters more than explainability", correct: true, explanation: "Neural networks are framed as the foundation of LLMs: good for complex, multimodal, data-rich problems where raw accuracy outweighs the need to explain the decision." },
+      { text: "When your only goal is a simple, visual, explainable flowchart", correct: false },
+      { text: "When you need a fast decision boundary with a small margin", correct: false },
+    ],
+  },
+  {
+    prompt: "In the IPL player-price example, how does a boosting algorithm (e.g., XGBoost, LightGBM) arrive at its final prediction?",
+    options: [
+      { text: "A single large tree considers all factors at once in one pass", correct: false },
+      { text: "Multiple trees are trained sequentially, where each new tree corrects the error left by the previous one (batting → + bowling correction → + fielding correction), and the results are combined into a final ensemble prediction", correct: true, explanation: "Tree 1 estimates value from batting alone (undervaluing the player); tree 2 adds a bowling-performance correction; tree 3 adds a fielding correction; the combined estimate lands close to the actual price." },
+      { text: "It randomly averages many independent, unrelated models with no error correction", correct: false },
+      { text: "It only uses the player's batting average", correct: false },
+    ],
+  },
+  {
+    prompt: "Why does the lecture say MLOps practitioners need to understand these algorithms, even if they aren't the ones building the models?",
+    options: [
+      { text: "Because Udemy requires a quiz on this topic", correct: false },
+      { text: "Because the choice of model affects infrastructure needs — compute (CPU/GPU), packaging, training-workflow complexity, cost, and which metrics you'll monitor", correct: true, explanation: "The summary ties model choice directly to how you \"prep your environment,\" set up workflows, and decide what to monitor — e.g., neural networks cost more in CPU/GPU and time than simpler models." },
+      { text: "Because all algorithms require identical GPU resources regardless of type", correct: false },
+      { text: "Because MLOps engineers must personally invent new algorithms for each project", correct: false },
+    ],
+  },
+]} />

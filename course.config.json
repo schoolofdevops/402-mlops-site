@@ -1,0 +1,332 @@
+{
+  "course": {
+    "slug": "mlops-bootcamp",
+    "title": "Ultimate DevOps to MLOps Bootcamp",
+    "tagline": "Take one machine learning model all the way to production, and keep it running.",
+    "description": "A project-driven bootcamp for engineers who need to put machine learning models into production and operate them. You build a house price prediction service end to end: trained by a pipeline, packaged into a container, deployed on Kubernetes, monitored in Grafana, scaled by KEDA, and delivered through GitOps with Argo CD. No machine learning background is needed. Comfort on a command line is.",
+    "author": "Gourav Shah",
+    "organization": "School of DevOps & AI",
+    "audience": "DevOps and platform engineers supporting ML workloads, backend engineers moving toward ML infrastructure, and data scientists who want their models to reach production.",
+    "project_spine": "A house price prediction service. One forked repository grown module by module, from raw CSV through to a GitOps-delivered, self-scaling inference service on Kubernetes.",
+    "advanced_depth_bar": "ON",
+    "prereq_knowledge": [
+      "Comfortable working on a command line",
+      "Basic Git — clone, commit, push, branch",
+      "Able to read Python, though you will not be asked to write much of it",
+      "No machine learning background required",
+      "No Kubernetes background required"
+    ],
+    "prereq_knowledge_md": "- Comfortable working on a command line\n- Basic Git — clone, commit, push, branch\n- Able to read Python, though you will not be asked to write much of it\n- No machine learning background required\n- No Kubernetes background required"
+  },
+  "repo": {
+    "org": "schoolofdevops",
+    "name": "402-mlops",
+    "src": "402-mlops-src",
+    "labs": "402-mlops-labs",
+    "site": "402-mlops-site"
+  },
+  "pages": {
+    "url": "https://schoolofdevops.github.io",
+    "baseUrl": "/402-mlops-site/"
+  },
+  "stack": {
+    "container_runtime": "Docker Desktop or Rancher Desktop",
+    "models": "scikit-learn regression, tracked with MLflow",
+    "vector_db": "n/a",
+    "registry": "Docker Hub"
+  },
+  "lab": {
+    "environment_noun": "workstation",
+    "tools": [
+      {
+        "name": "python",
+        "probe": "python --version",
+        "min": "3.11",
+        "install": {
+          "macos": "brew install python@3.11",
+          "linux": "sudo apt-get install -y python3.11",
+          "windows": "Download from https://www.python.org/downloads/"
+        }
+      },
+      {
+        "name": "uv",
+        "probe": "uv --version",
+        "install": {
+          "macos": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+          "linux": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+          "windows": "powershell -c \"irm https://astral.sh/uv/install.ps1 | iex\""
+        }
+      },
+      {
+        "name": "git",
+        "probe": "git --version",
+        "install": {
+          "macos": "brew install git",
+          "linux": "sudo apt-get install -y git",
+          "windows": "Download from https://git-scm.com/downloads"
+        }
+      },
+      {
+        "name": "docker",
+        "probe": "docker version --format '{{.Server.Version}}'",
+        "install": {
+          "macos": "Install Docker Desktop or Rancher Desktop",
+          "linux": "curl -fsSL https://get.docker.com | sh",
+          "windows": "Install Docker Desktop or Rancher Desktop"
+        }
+      },
+      {
+        "name": "kubectl",
+        "probe": "kubectl version --client",
+        "install": {
+          "macos": "brew install kubectl",
+          "linux": "sudo snap install kubectl --classic",
+          "windows": "choco install kubernetes-cli"
+        }
+      },
+      {
+        "name": "kind",
+        "probe": "kind --version",
+        "install": {
+          "macos": "brew install kind",
+          "linux": "go install sigs.k8s.io/kind@latest",
+          "windows": "choco install kind"
+        }
+      },
+      {
+        "name": "helm",
+        "probe": "helm version --short",
+        "install": {
+          "macos": "brew install helm",
+          "linux": "curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash",
+          "windows": "choco install kubernetes-helm"
+        }
+      },
+      {
+        "name": "hey",
+        "probe": "command -v hey",
+        "install": {
+          "macos": "brew install hey",
+          "linux": "sudo snap install hey",
+          "windows": "Download from https://github.com/rakyll/hey/releases"
+        }
+      }
+    ],
+    "requirements": {
+      "ram_min": "8Gi",
+      "ram_recommended": "16Gi",
+      "cpu_min": "4",
+      "cpu_recommended": "8",
+      "disk_min": "20Gi",
+      "disk_recommended": "40Gi"
+    },
+    "spine": {
+      "mode": "grow-in-place",
+      "path": "house-price-predictor/",
+      "kind": "A forked project repository grown module by module. Modules 2 and 3 add data, features and a trained model. Module 4 adds Dockerfiles and a compose stack. Module 5 adds .github/workflows. Modules 6 to 8 add deployment/kubernetes, deployment/monitoring and the Argo CD application."
+    },
+    "setup": "Learners fork github.com/mlopsbootcamp/house-price-predictor and work in their own fork throughout, because later modules require write access for CI pipelines and GitOps. A three node KIND cluster is built in Module 6 and reused by Modules 7 and 8 without being torn down.",
+    "simulators": false,
+    "probe_block": "python --version\nuv --version\ngit --version\ndocker version --format '{{.Server.Version}}'\nkubectl version --client\nkind --version\nhelm version --short\ncommand -v hey",
+    "install_macos": "brew install python@3.11\ncurl -LsSf https://astral.sh/uv/install.sh | sh\nbrew install git\nInstall Docker Desktop or Rancher Desktop\nbrew install kubectl\nbrew install kind\nbrew install helm\nbrew install hey",
+    "install_linux": "sudo apt-get install -y python3.11\ncurl -LsSf https://astral.sh/uv/install.sh | sh\nsudo apt-get install -y git\ncurl -fsSL https://get.docker.com | sh\nsudo snap install kubectl --classic\ngo install sigs.k8s.io/kind@latest\ncurl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash\nsudo snap install hey",
+    "ram_min": "8Gi",
+    "ram_recommended": "16Gi",
+    "cpu_min": "4",
+    "cpu_recommended": "8",
+    "disk_min": "20Gi",
+    "disk_recommended": "40Gi"
+  },
+  "pack": {
+    "domain_module": "devops"
+  },
+  "modules": [
+    {
+      "id": "m1",
+      "slug": "ml-lifecycle-and-project",
+      "label": "M1 · The ML Lifecycle and the Project",
+      "title": "The ML Lifecycle and the Project You Will Build",
+      "objectives": [
+        "Describe the house price prediction problem and why it is framed as a regression task",
+        "Walk the end-to-end machine learning lifecycle from raw data through to a served model",
+        "Identify which parts of the lifecycle belong to the data scientist and which belong to you",
+        "Name the point in the lifecycle where MLOps work actually begins"
+      ],
+      "lab_intent": "No lab. Concept module that sets up the project every later module builds on.",
+      "deep_dive_intent": "How the handover between data science and engineering goes wrong in practice, and what artifacts a good handover contains.",
+      "folder": "m1-ml-lifecycle-and-project",
+      "objectives_md": "- Describe the house price prediction problem and why it is framed as a regression task\n- Walk the end-to-end machine learning lifecycle from raw data through to a served model\n- Identify which parts of the lifecycle belong to the data scientist and which belong to you\n- Name the point in the lifecycle where MLOps work actually begins",
+      "title_fm": "The ML Lifecycle and the Project You Will Build"
+    },
+    {
+      "id": "m2",
+      "slug": "environment-setup",
+      "label": "M2 · Environment Setup",
+      "title": "Setting up your MLOps Workstation",
+      "objectives": [
+        "Create an isolated Python environment with uv",
+        "Get a container runtime working on macOS, Linux or Windows",
+        "Fork and clone the project repository, and explain why forking is required here",
+        "Run MLflow as a container and reach its interface",
+        "Navigate the project layout and explain the split between notebooks and scripts"
+      ],
+      "lab_intent": "Install the toolchain, fork and clone the repo, create the Python environment, and bring up MLflow with Docker Compose.",
+      "deep_dive_intent": "Why uv replaces pip and venv, how MLflow stores runs behind the tracking server, and what to change when moving from a local tracking server to a shared one.",
+      "folder": "m2-environment-setup",
+      "objectives_md": "- Create an isolated Python environment with uv\n- Get a container runtime working on macOS, Linux or Windows\n- Fork and clone the project repository, and explain why forking is required here\n- Run MLflow as a container and reach its interface\n- Navigate the project layout and explain the split between notebooks and scripts",
+      "title_fm": "Setting up your MLOps Workstation"
+    },
+    {
+      "id": "m3",
+      "slug": "data-to-model",
+      "label": "M3 · From Data to Model",
+      "title": "From Raw Data to a Trained Model",
+      "objectives": [
+        "Clean a raw dataset and explain what was dropped and why",
+        "Build engineered features and save the transformation as a reusable preprocessor",
+        "Split data into training and test sets and read X_train, y_train, X_test, y_test correctly",
+        "Define algorithm and hyperparameter grids and compare the resulting runs",
+        "Track every experiment in MLflow and defend which model won"
+      ],
+      "lab_intent": "Run the processing, feature engineering and training scripts, producing a trained model and a preprocessor, with every run logged to MLflow.",
+      "deep_dive_intent": "Training and inference feature parity — why the preprocessor must be saved rather than reconstructed, and how the two silently drift apart.",
+      "folder": "m3-data-to-model",
+      "objectives_md": "- Clean a raw dataset and explain what was dropped and why\n- Build engineered features and save the transformation as a reusable preprocessor\n- Split data into training and test sets and read X_train, y_train, X_test, y_test correctly\n- Define algorithm and hyperparameter grids and compare the resulting runs\n- Track every experiment in MLflow and defend which model won",
+      "title_fm": "From Raw Data to a Trained Model"
+    },
+    {
+      "id": "m4",
+      "slug": "package-and-serve",
+      "label": "M4 · Packaging and Serving",
+      "title": "Packaging the Model and Serving it with FastAPI",
+      "objectives": [
+        "Explain what a data scientist hands over and what is missing from that handover",
+        "Wrap a model in a FastAPI service with request validation",
+        "Write a Dockerfile that packages code and model together, ordered for layer caching",
+        "Run the API and the web interface together with Docker Compose",
+        "Debug a container that builds cleanly but exits on start"
+      ],
+      "lab_intent": "Write Dockerfiles for the API and the Streamlit client, build and test each image, then run both as one stack with Compose.",
+      "deep_dive_intent": "Baked-in models versus loading from a model registry at startup, and what each choice costs you at rollout time.",
+      "folder": "m4-package-and-serve",
+      "objectives_md": "- Explain what a data scientist hands over and what is missing from that handover\n- Wrap a model in a FastAPI service with request validation\n- Write a Dockerfile that packages code and model together, ordered for layer caching\n- Run the API and the web interface together with Docker Compose\n- Debug a container that builds cleanly but exits on start",
+      "title_fm": "Packaging the Model and Serving it with FastAPI"
+    },
+    {
+      "id": "m5",
+      "slug": "ci-pipelines",
+      "label": "M5 · CI Pipelines with GitHub Actions",
+      "title": "Building an MLOps CI Pipeline with GitHub Actions",
+      "objectives": [
+        "Read GitHub Actions workflow syntax and explain triggers, jobs and steps",
+        "Store registry credentials correctly as a variable and a secret",
+        "Build a multi-stage pipeline where each job depends on the one before it",
+        "Pass files between jobs using artifacts, since jobs share no filesystem",
+        "Explain why an ML pipeline is an ordinary CI pipeline with a different payload"
+      ],
+      "lab_intent": "Write a single-job workflow first, wire up Docker Hub credentials, then build the three-stage pipeline from data processing through model training to image publish.",
+      "deep_dive_intent": "Why a mutable latest tag breaks every downstream system, and how commit-SHA tagging changes the pipeline and the manifests together.",
+      "folder": "m5-ci-pipelines",
+      "objectives_md": "- Read GitHub Actions workflow syntax and explain triggers, jobs and steps\n- Store registry credentials correctly as a variable and a secret\n- Build a multi-stage pipeline where each job depends on the one before it\n- Pass files between jobs using artifacts, since jobs share no filesystem\n- Explain why an ML pipeline is an ordinary CI pipeline with a different payload",
+      "title_fm": "Building an MLOps CI Pipeline with GitHub Actions"
+    },
+    {
+      "id": "m6",
+      "slug": "deploy-on-kubernetes",
+      "label": "M6 · Deploying on Kubernetes",
+      "title": "Deploying the Model on Kubernetes",
+      "objectives": [
+        "Explain why model inference benefits from an orchestrator",
+        "Use Pods, Deployments and Services correctly, and say what each one is for",
+        "Build a three node KIND cluster and deploy both the model and the frontend",
+        "Connect two services by DNS name rather than IP address",
+        "Generate manifests instead of writing them, and manage them together with kustomize"
+      ],
+      "lab_intent": "Build the cluster, deploy model and frontend with NodePort services, connect them by service name, then replace every command with generated YAML applied through kustomize.",
+      "deep_dive_intent": "How a Service actually routes to Pods through endpoints and kube-proxy, and what breaks when label selectors do not match.",
+      "folder": "m6-deploy-on-kubernetes",
+      "objectives_md": "- Explain why model inference benefits from an orchestrator\n- Use Pods, Deployments and Services correctly, and say what each one is for\n- Build a three node KIND cluster and deploy both the model and the frontend\n- Connect two services by DNS name rather than IP address\n- Generate manifests instead of writing them, and manage them together with kustomize",
+      "title_fm": "Deploying the Model on Kubernetes"
+    },
+    {
+      "id": "m7",
+      "slug": "monitoring-and-autoscaling",
+      "label": "M7 · Monitoring and Autoscaling",
+      "title": "Monitoring and Autoscaling Model Inference",
+      "objectives": [
+        "Separate system monitoring from model monitoring and say which this module covers",
+        "Install Prometheus and Grafana with Helm and instrument a FastAPI application",
+        "Point Prometheus at your service with a ServiceMonitor and verify data is arriving",
+        "Explain why CPU is often the wrong scaling signal for model inference",
+        "Scale on a Prometheus query with KEDA, and right-size Pods with a VPA",
+        "Run a load test and read the latency distribution rather than the average"
+      ],
+      "lab_intent": "Two labs. First install the monitoring stack, instrument the API and build a dashboard. Then install KEDA, scale on latency and request rate, load test it, and add a Vertical Pod Autoscaler.",
+      "deep_dive_intent": "Reading histogram buckets and histogram_quantile properly, and why an HPA and a VPA acting on the same CPU metric fight each other.",
+      "folder": "m7-monitoring-and-autoscaling",
+      "objectives_md": "- Separate system monitoring from model monitoring and say which this module covers\n- Install Prometheus and Grafana with Helm and instrument a FastAPI application\n- Point Prometheus at your service with a ServiceMonitor and verify data is arriving\n- Explain why CPU is often the wrong scaling signal for model inference\n- Scale on a Prometheus query with KEDA, and right-size Pods with a VPA\n- Run a load test and read the latency distribution rather than the average",
+      "title_fm": "Monitoring and Autoscaling Model Inference"
+    },
+    {
+      "id": "m8",
+      "slug": "gitops-with-argocd",
+      "label": "M8 · GitOps with Argo CD",
+      "title": "Continuous Delivery with GitOps and Argo CD",
+      "objectives": [
+        "State the four principles of GitOps and map each to something already built",
+        "Install Argo CD into the cluster that runs the model",
+        "Write an Application resource mapping a Git repository to a cluster",
+        "Use a release branch and a pull request as the approval step before deployment",
+        "Take a change from a code edit to a running Pod without running kubectl apply",
+        "Debug a deployment that reports Synced while still serving the old version"
+      ],
+      "lab_intent": "Install Argo CD, create the Application against a release branch, remove the hand-applied workloads and let Argo CD recreate them, then run a change end to end through CI and GitOps.",
+      "deep_dive_intent": "Argo CD sync options, prune and self-heal in practice, and why a KEDA-managed replica count fights self-heal until the ScaledObject moves into the same source of truth.",
+      "folder": "m8-gitops-with-argocd",
+      "objectives_md": "- State the four principles of GitOps and map each to something already built\n- Install Argo CD into the cluster that runs the model\n- Write an Application resource mapping a Git repository to a cluster\n- Use a release branch and a pull request as the approval step before deployment\n- Take a change from a code edit to a running Pod without running kubectl apply\n- Debug a deployment that reports Synced while still serving the old version",
+      "title_fm": "Continuous Delivery with GitOps and Argo CD"
+    },
+    {
+      "id": "m9",
+      "slug": "mlops-foundations",
+      "label": "M9 · Appendix A — MLOps Foundations",
+      "title": "MLOps Foundations and Context",
+      "objectives": [
+        "Define MLOps and explain which problem it exists to solve",
+        "Compare MLOps with the DevOps practices you already know",
+        "Distinguish traditional ML, LLM and agentic approaches, and pick between them",
+        "Trace the evolution from machine learning through LLMs to agentic systems",
+        "Describe how real companies operate ML platforms at scale"
+      ],
+      "lab_intent": "No lab. Optional background module that can be read at any point in the course.",
+      "deep_dive_intent": "The MLOps maturity ladder, from manual process through pipeline automation to full CI/CD with retraining and drift detection.",
+      "folder": "m9-mlops-foundations",
+      "objectives_md": "- Define MLOps and explain which problem it exists to solve\n- Compare MLOps with the DevOps practices you already know\n- Distinguish traditional ML, LLM and agentic approaches, and pick between them\n- Trace the evolution from machine learning through LLMs to agentic systems\n- Describe how real companies operate ML platforms at scale",
+      "title_fm": "MLOps Foundations and Context"
+    },
+    {
+      "id": "m10",
+      "slug": "ml-algorithms",
+      "label": "M10 · Appendix B — ML Algorithms",
+      "title": "ML Algorithms Explained with Analogies",
+      "objectives": [
+        "Explain linear and logistic regression in plain language",
+        "Describe how decision trees and random forests reach a prediction",
+        "Say what a support vector machine separates and how",
+        "Explain what a neural network is doing, and its link to large language models",
+        "Describe how boosting algorithms learn from previous errors"
+      ],
+      "lab_intent": "No lab. Optional reference module explaining the algorithm names that appear in model_config.yaml.",
+      "deep_dive_intent": "How the algorithm choice changes inference cost, memory footprint and latency, which is what makes it an operational decision rather than only a modelling one.",
+      "folder": "m10-ml-algorithms",
+      "objectives_md": "- Explain linear and logistic regression in plain language\n- Describe how decision trees and random forests reach a prediction\n- Say what a support vector machine separates and how\n- Explain what a neural network is doing, and its link to large language models\n- Describe how boosting algorithms learn from previous errors",
+      "title_fm": "ML Algorithms Explained with Analogies"
+    }
+  ],
+  "repos": {
+    "src": "schoolofdevops/402-mlops-src",
+    "labs": "schoolofdevops/402-mlops-labs",
+    "site": "schoolofdevops/402-mlops"
+  },
+  "today": "2026-09-11"
+}

@@ -1,0 +1,121 @@
+---
+sidebar_position: 90
+title: "Quiz: Packaging the Model and Serving it with FastAPI"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# Packaging the Model and Serving it with FastAPI — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "When a data scientist hands off to the ML engineer, what artifacts do they typically provide, per the lecture?",
+    options: [
+      { text: "A Kubernetes manifest and a Helm chart", correct: false },
+      { text: "A chosen model configuration (with tuned hyperparameters) and notebooks", correct: true, explanation: "The data scientist provides the model config (already-decided model and tuned hyperparameters) and notebooks; the ML engineer converts these into scripts." },
+      { text: "A finished Docker image and a CI/CD pipeline", correct: false },
+      { text: "A live production API endpoint", correct: false },
+    ],
+  },
+  {
+    prompt: "Why can't a client application talk to a trained model's pickle file directly?",
+    options: [
+      { text: "Pickle files are encrypted by default", correct: false },
+      { text: "It is not a directly executable/callable object — it needs to be wrapped so it can respond to requests", correct: true, explanation: "The lecture explains the pickle file isn't something a client can call directly; it must be wrapped (e.g., in a FastAPI service) so it can be reached via RESTful API calls." },
+      { text: "Pickle files can only be read by MLflow", correct: false },
+      { text: "Docker cannot copy pickle files into a container", correct: false },
+    ],
+  },
+  {
+    prompt: "What does the preprocessor (saved alongside the trained model) get used for at inference time?",
+    options: [
+      { text: "To compress the model file for faster loading", correct: false },
+      { text: "To convert raw incoming request data into the same engineered features the model was trained on", correct: true, explanation: "Raw data from a client doesn't have engineered features like house age or price-per-square-foot; the preprocessor recreates those at inference time before the model can predict." },
+      { text: "To authenticate incoming API requests", correct: false },
+      { text: "To register the model with MLflow", correct: false },
+    ],
+  },
+  {
+    prompt: "In the FastAPI application, what are the three endpoints described in the lecture?",
+    options: [
+      { text: "train, evaluate, deploy", correct: false },
+      { text: "health, predict, batch predict", correct: true, explanation: "main.py exposes a health endpoint plus predict (single/real-time) and batch predict endpoints." },
+      { text: "login, predict, logout", correct: false },
+      { text: "health, train, retrain", correct: false },
+    ],
+  },
+  {
+    prompt: "Why must the Dockerfile for the FastAPI app be placed at the root of the project (not inside src/api) and built from there?",
+    options: [
+      { text: "Docker requires Dockerfiles to always be at the repository root", correct: false },
+      { text: "The build needs access to the trained model files, which live outside src/api, and the build context is set from where the Dockerfile is built", correct: true, explanation: "If you build from inside src/api, the build context has no access to the models directory; running the build from the project root gives COPY access to both source and model files." },
+      { text: "FastAPI cannot run from a subdirectory", correct: false },
+      { text: "It reduces the final image size", correct: false },
+    ],
+  },
+  {
+    prompt: "What base image and launch command does the FastAPI Dockerfile use?",
+    options: [
+      { text: "node:18-slim, run with npm start", correct: false },
+      { text: "python:3.11-slim, launched with uvicorn main:app --host 0.0.0.0 --port 8000", correct: true, explanation: "The Dockerfile uses python:3.11-slim as the base image and starts the app with uvicorn main:app, listening on 0.0.0.0:8000, expressed as a JSON-array CMD." },
+      { text: "ubuntu:latest, launched with python main.py", correct: false },
+      { text: "python:3.9-slim, launched with flask run", correct: false },
+    ],
+  },
+  {
+    prompt: "While debugging the failed FastAPI container, what was the actual root cause found by comparing environments?",
+    options: [
+      { text: "The wrong port was exposed in the Dockerfile", correct: false },
+      { text: "The model file was never copied into the image", correct: false },
+      { text: "Version mismatches in dependencies (e.g., numpy, joblib) between the virtual environment used to train the model and the container's requirements.txt", correct: true, explanation: "Comparing the container's requirements.txt against the local virtual environment revealed differing numpy/joblib versions; updating requirements.txt to match fixed the pickle-loading error." },
+      { text: "The Streamlit app was using the wrong API URL", correct: false },
+    ],
+  },
+  {
+    prompt: "What troubleshooting technique was used to inspect the failing container instead of just reading logs?",
+    options: [
+      { text: "Restarting Docker Desktop", correct: false },
+      { text: "Running the container with `-it --rm` and overriding the command with `bash` to get an interactive shell inside it", correct: true, explanation: "Using `-it --rm ... bash` overrides the default CMD, opening an interactive shell to verify copied files and manually reproduce the startup error." },
+      { text: "Deleting the image and rebuilding from scratch immediately", correct: false },
+      { text: "Switching from Docker to Podman", correct: false },
+    ],
+  },
+  {
+    prompt: "In docker-compose.yaml, how does the Streamlit service reach the FastAPI service without hardcoding an IP address?",
+    options: [
+      { text: "Via a shared Docker volume", correct: false },
+      { text: "By setting an environment variable (API_URL) to the FastAPI service's name, which Docker Compose resolves automatically on the shared network", correct: true, explanation: "Docker Compose auto-creates a network where each service is reachable by its service name (e.g., `http://fastapi:8000`), so the Streamlit environment variable just references the service name." },
+      { text: "By exposing both services on the host's localhost only", correct: false },
+      { text: "Through a manually configured DNS server", correct: false },
+    ],
+  },
+  {
+    prompt: "What is the fix suggested in the lecture when you see \"address already in use\" while running docker compose up?",
+    options: [
+      { text: "Delete all other running containers on the system", correct: false },
+      { text: "Change the left-hand (host) side of the port mapping in the compose spec, e.g. 8005:8000", correct: true, explanation: "Only the host-side port needs to change (e.g., to 8005:8000) since another process is already bound to the original host port." },
+      { text: "Restart the machine", correct: false },
+      { text: "Switch the base image to Alpine", correct: false },
+    ],
+  },
+  {
+    prompt: "What must you run before `docker image push` will succeed against Docker Hub, if you haven't already authenticated?",
+    options: [
+      { text: "docker compose validate", correct: false },
+      { text: "docker login", correct: true, explanation: "Pushing to a registry requires authenticating first with `docker login`; otherwise the push is rejected." },
+      { text: "docker image inspect", correct: false },
+      { text: "docker network create", correct: false },
+    ],
+  },
+  {
+    prompt: "According to the lecture and Lab 5, what two build contexts differ between the FastAPI and Streamlit Dockerfiles?",
+    options: [
+      { text: "Both use the exact same build context and base image", correct: false },
+      { text: "FastAPI is built from the project root (needs access to models/), while Streamlit is built from its own streamlit_app directory (no model files needed)", correct: true, explanation: "FastAPI's build context must be the repo root so COPY can reach the trained model files; Streamlit has no model dependency, so its Dockerfile and build context both live inside streamlit_app/." },
+      { text: "FastAPI is built from streamlit_app/, while Streamlit is built from the project root", correct: false },
+      { text: "Neither Dockerfile needs a build context", correct: false },
+    ],
+  },
+]} />

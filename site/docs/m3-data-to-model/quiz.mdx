@@ -1,0 +1,121 @@
+---
+sidebar_position: 90
+title: "Quiz: From Raw Data to a Trained Model"
+---
+
+import Quiz from '@site/src/components/Quiz';
+
+# From Raw Data to a Trained Model — Quiz
+
+Answer each question, then press Check. The explanation appears once you have committed to an answer.
+
+<Quiz questions={[
+  {
+    prompt: "What is the primary responsibility of the data engineer in the house-price-predictor workflow?",
+    options: [
+      { text: "Choosing the best ML algorithm and tuning hyperparameters", correct: false },
+      { text: "Collecting, cleaning, and preparing raw data so it's usable by the rest of the team", correct: true, explanation: "The lecture frames the data engineer as the one who finds, cleans, and processes raw data (handling nulls, outliers, sanity checks) before it reaches the data scientist." },
+      { text: "Deploying the trained model behind a FastAPI wrapper", correct: false },
+      { text: "Writing the Kubernetes manifests for the model service", correct: false },
+    ],
+  },
+  {
+    prompt: "In the data processing notebook, the raw dataset started at 84 rows. What happened after outlier removal?",
+    options: [
+      { text: "It stayed at 84 rows; outliers were replaced with the mean instead of dropped", correct: false },
+      { text: "7 outlier rows were dropped, leaving 77 rows", correct: true, explanation: "The transcript shows the shape going from 84 to 77 after removing 7 skewed/outlier values." },
+      { text: "The dataset was duplicated to make up for lost rows", correct: false },
+      { text: "It shrank to only 7 rows", correct: false },
+    ],
+  },
+  {
+    prompt: "What two flags does `run_processing.py` take in Lab 4 to clean the raw housing dataset?",
+    options: [
+      { text: "`--source` and `--target`", correct: false },
+      { text: "`--input` and `--output`", correct: true, explanation: "`python src/data/run_processing.py --input data/raw/house_data.csv --output data/processed/cleaned_house_data.csv`" },
+      { text: "`--data` and `--dest`", correct: false },
+      { text: "`--raw` and `--clean`", correct: false },
+    ],
+  },
+  {
+    prompt: "What did the correlation heat map in the EDA notebook reveal about square footage and price?",
+    options: [
+      { text: "No relationship at all", correct: false },
+      { text: "A strong, close correlation — making square footage a useful predictive feature", correct: true, explanation: "The lecture calls out square footage and price as having \"a very close correlation.\"" },
+      { text: "An inverse relationship, where bigger houses were cheaper", correct: false },
+      { text: "Correlation couldn't be computed for numeric columns", correct: false },
+    ],
+  },
+  {
+    prompt: "Which of these is NOT one of the features actually engineered for the house price dataset in this module?",
+    options: [
+      { text: "Age of the house (current year − year built)", correct: false },
+      { text: "Price per square foot", correct: false },
+      { text: "Bed-to-bath ratio", correct: false },
+      { text: "Distance to nearest school", correct: true, explanation: "Only age, price-per-sqft, and bed/bath ratio were engineered; distance to school was never created." },
+    ],
+  },
+  {
+    prompt: "Why must the same feature-engineering transformations (age, price/sqft, etc.) applied during training also run at inference time?",
+    options: [
+      { text: "They're only needed during training, not inference", correct: false },
+      { text: "The model expects the same engineered input schema it was trained on, so a preprocessor must recreate those features for new incoming data", correct: true, explanation: "The lecture explicitly notes new data sent for prediction won't already have \"age of house\" etc., so the same engineering has to be reapplied via a preprocessor." },
+      { text: "It's a Udemy platform requirement", correct: false },
+      { text: "Raw data is never reused after training", correct: false },
+    ],
+  },
+  {
+    prompt: "The t-shirt size (small/medium/large) example was used to illustrate what kind of feature engineering?",
+    options: [
+      { text: "Data splitting", correct: false },
+      { text: "One-hot encoding — converting categorical text into numbers the model can use", correct: true },
+      { text: "Outlier removal", correct: false },
+      { text: "Cross-validation", correct: false },
+    ],
+  },
+  {
+    prompt: "When splitting data with `test_size=0.2`, what does that 20% represent?",
+    options: [
+      { text: "20% of the columns are treated as input features", correct: false },
+      { text: "20% of the rows are held back from training and used only to validate the model's predictions", correct: true, explanation: "Described as the equivalent of \"exam questions\" the model never trained on." },
+      { text: "20% of the data is deleted before training", correct: false },
+      { text: "20% extra synthetic data is generated", correct: false },
+    ],
+  },
+  {
+    prompt: "Why is `random_state` set when splitting the data into train/test sets?",
+    options: [
+      { text: "To randomize results differently on every run", correct: false },
+      { text: "To make the train/test split reproducible across repeated runs of the experiment", correct: true },
+      { text: "To increase the size of the test set", correct: false },
+      { text: "To automatically balance class distribution", correct: false },
+    ],
+  },
+  {
+    prompt: "What service has to be running before the model-experimentation notebook can log results, and how is it started in this course?",
+    options: [
+      { text: "TensorBoard, via `tensorboard --logdir`", correct: false },
+      { text: "MLflow, via `docker compose up -d`", correct: true, explanation: "MLflow is launched with Docker Compose before the experiment notebook connects to its tracking URI." },
+      { text: "Weights & Biases, via a cloud signup", correct: false },
+      { text: "Prometheus, via Helm", correct: false },
+    ],
+  },
+  {
+    prompt: "What does `GridSearchCV` with `cv=3` do during model experimentation?",
+    options: [
+      { text: "Trains exactly 3 models total, one per algorithm", correct: false },
+      { text: "Splits the data 3 different ways (cross-validation folds) and evaluates each hyperparameter combination across those folds to find the best config", correct: true },
+      { text: "Runs the experiment 3 times in parallel on 3 machines", correct: false },
+      { text: "Limits the grid search to only 3 hyperparameters", correct: false },
+    ],
+  },
+  {
+    prompt: "What does the data scientist hand off to the ML/MLOps engineer at the end of this module?",
+    options: [
+      { text: "A fully containerized, production-ready API", correct: false },
+      { text: "A Kubernetes deployment YAML", correct: false },
+      { text: "`model_config.yaml` (best algorithm + tuned hyperparameters) plus the feature-engineered dataset/preprocessor — not necessarily a trained model file", correct: true, explanation: "The handover lecture notes the data scientist can optionally dump a trained model pickle, but what's produced by default is the config and feature/preprocessor artifacts; training the final model is left to the ML engineer (next module)." },
+      { text: "A Grafana dashboard", correct: false },
+    ],
+  },
+]} />
