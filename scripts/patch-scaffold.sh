@@ -1,3 +1,13 @@
+#!/usr/bin/env bash
+# Re-apply local deviations from the CourseSmith scaffold template.
+# The scaffold engine regenerates site/docusaurus.config.ts and
+# .github/workflows/deploy.yml, so run this after every scaffold run.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+# 1. This course deploys from a single public repo, not the three-repo layout,
+#    so use GitHub's official Pages actions with the built-in GITHUB_TOKEN.
+cat > .github/workflows/deploy.yml <<'YAML'
 name: Deploy course site
 
 # Single-repo publish: this repo builds site/ and deploys it straight to GitHub
@@ -56,3 +66,20 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+YAML
+
+# 2. Docusaurus parses .md as MDX by default, which breaks on ${{ }} in the CI
+#    lab and <pod-name> in the Kubernetes lab. Parse .md as CommonMark instead.
+# 3. projectName must match pages.baseUrl or GitHub Pages serves a 404.
+python3 - <<'PY'
+import pathlib
+d = pathlib.Path('site/docusaurus.config.ts'); s = d.read_text()
+s = s.replace("projectName: '402-mlops',", "projectName: '402-mlops-site',")
+if "format: 'detect'" not in s:
+    s = s.replace("markdown: { mermaid: true,", "markdown: { format: 'detect', mermaid: true,")
+d.write_text(s)
+assert "402-mlops-site" in s and "format: 'detect'" in s, "patch failed"
+print("docusaurus.config.ts patched")
+PY
+
+echo "scaffold patches re-applied"
