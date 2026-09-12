@@ -50,12 +50,22 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: "M9 · Appendix A — MLOps Foundations",
+      label: "M9 · Progressive Delivery for Models",
+      items: ['m11-progressive-delivery/lesson', 'm11-progressive-delivery/lab', 'm11-progressive-delivery/lab-metric-gates', 'm11-progressive-delivery/lab-environments', 'm11-progressive-delivery/quiz', 'm11-progressive-delivery/deep-dive'],
+    },
+    {
+      type: 'category',
+      label: "M10 · Drift Detection and Retraining",
+      items: ['m12-drift-and-retraining/lesson', 'm12-drift-and-retraining/lab', 'm12-drift-and-retraining/lab-closed-loop', 'm12-drift-and-retraining/quiz', 'm12-drift-and-retraining/deep-dive'],
+    },
+    {
+      type: 'category',
+      label: "Appendix A · MLOps Foundations",
       items: ['m9-mlops-foundations/lesson', 'm9-mlops-foundations/quiz', 'm9-mlops-foundations/deep-dive'],
     },
     {
       type: 'category',
-      label: "M10 · Appendix B — ML Algorithms",
+      label: "Appendix B · ML Algorithms",
       items: ['m10-ml-algorithms/lesson', 'm10-ml-algorithms/quiz', 'm10-ml-algorithms/deep-dive'],
     },
   ],

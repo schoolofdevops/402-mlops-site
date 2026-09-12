@@ -30,6 +30,15 @@ LABS = {
         ("lab_08_autoscaling.md", "lab-autoscaling"),
     ],
     "m8-gitops-with-argocd": [("lab_09_gitops_argocd.md", "lab")],
+    "m11-progressive-delivery": [
+        ("lab_10_progressive_delivery.md", "lab"),
+        ("lab_11_metric_gates.md", "lab-metric-gates"),
+        ("lab_12_environments.md", "lab-environments"),
+    ],
+    "m12-drift-and-retraining": [
+        ("lab_13_drift_detection.md", "lab"),
+        ("lab_14_closed_loop.md", "lab-closed-loop"),
+    ],
 }
 
 NO_LAB = ["m1-ml-lifecycle-and-project", "m9-mlops-foundations", "m10-ml-algorithms"]

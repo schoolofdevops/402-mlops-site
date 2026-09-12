@@ -32,7 +32,7 @@ This course splits across three repositories so learners get a clean surface and
 - **`schoolofdevops/402-mlops-labs`** (public) — what LEARNERS clone: the `labs/` tree + a slim README.
   Synced from here on every module completion (copy `labs/` verbatim — paths stay identical, so lab
   commands are unchanged).
-- **`schoolofdevops/402-mlops`** (public) — the built site ONLY (Pages served from the `gh-pages`
+- **`schoolofdevops/402-mlops-site`** (public) — the built site ONLY (Pages served from the `gh-pages`
   branch). Deploy = build `site/`, push `site/build/` to that repo's `gh-pages` branch.
 - **Live site:** https://schoolofdevops.github.io/402-mlops-site/
 - **Learner-facing rule:** docs must NEVER point learners at the src repo — the labs clone is

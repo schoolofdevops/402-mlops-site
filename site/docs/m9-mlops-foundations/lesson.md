@@ -7,7 +7,7 @@ title: 'Lesson: MLOps Foundations and Context'
 
 :::note[Scaffolded — not yet authored]
 
-This lesson is a scaffold stub for **M9 · Appendix A — MLOps Foundations**. `course-authoring` (Slice 2) writes the
+This lesson is a scaffold stub for **Appendix A · MLOps Foundations**. `course-authoring` (Slice 2) writes the
 analogy-first concepts and at least one Mermaid diagram here.
 
 :::

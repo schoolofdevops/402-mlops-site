@@ -7,7 +7,7 @@ title: 'Lesson: ML Algorithms Explained with Analogies'
 
 :::note[Scaffolded — not yet authored]
 
-This lesson is a scaffold stub for **M10 · Appendix B — ML Algorithms**. `course-authoring` (Slice 2) writes the
+This lesson is a scaffold stub for **Appendix B · ML Algorithms**. `course-authoring` (Slice 2) writes the
 analogy-first concepts and at least one Mermaid diagram here.
 
 :::

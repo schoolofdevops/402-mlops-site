@@ -1,4 +1,4 @@
-# Plan: M10 · Appendix B — ML Algorithms — ML Algorithms Explained with Analogies
+# Plan: Appendix B · ML Algorithms — ML Algorithms Explained with Analogies
 
 **Goal:** Author ML Algorithms Explained with Analogies fully (lesson + lab + quiz) and validate the lab live.
 

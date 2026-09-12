@@ -25,8 +25,10 @@ DevOps and platform engineers supporting ML workloads, backend engineers moving 
 | M6 · Deploying on Kubernetes — Deploying the Model on Kubernetes | ⬜ | ⬜ | ⬜ | ⬜ |
 | M7 · Monitoring and Autoscaling — Monitoring and Autoscaling Model Inference | ⬜ | ⬜ | ⬜ | ⬜ |
 | M8 · GitOps with Argo CD — Continuous Delivery with GitOps and Argo CD | ⬜ | ⬜ | ⬜ | ⬜ |
-| M9 · Appendix A — MLOps Foundations — MLOps Foundations and Context | ⬜ | ⬜ | ⬜ | ⬜ |
-| M10 · Appendix B — ML Algorithms — ML Algorithms Explained with Analogies | ⬜ | ⬜ | ⬜ | ⬜ |
+| Appendix A · MLOps Foundations — MLOps Foundations and Context | ⬜ | ⬜ | ⬜ | ⬜ |
+| Appendix B · ML Algorithms — ML Algorithms Explained with Analogies | ⬜ | ⬜ | ⬜ | ⬜ |
+| M9 · Progressive Delivery for Models — Releasing Models Safely with Argo Rollouts | ⬜ | ⬜ | ⬜ | ⬜ |
+| M10 · Drift Detection and Retraining — Drift Detection and Automated Retraining | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## How to use this course
 

@@ -289,7 +289,7 @@
     {
       "id": "m9",
       "slug": "mlops-foundations",
-      "label": "M9 · Appendix A — MLOps Foundations",
+      "label": "Appendix A · MLOps Foundations",
       "title": "MLOps Foundations and Context",
       "objectives": [
         "Define MLOps and explain which problem it exists to solve",
@@ -307,7 +307,7 @@
     {
       "id": "m10",
       "slug": "ml-algorithms",
-      "label": "M10 · Appendix B — ML Algorithms",
+      "label": "Appendix B · ML Algorithms",
       "title": "ML Algorithms Explained with Analogies",
       "objectives": [
         "Explain linear and logistic regression in plain language",
@@ -321,12 +321,50 @@
       "folder": "m10-ml-algorithms",
       "objectives_md": "- Explain linear and logistic regression in plain language\n- Describe how decision trees and random forests reach a prediction\n- Say what a support vector machine separates and how\n- Explain what a neural network is doing, and its link to large language models\n- Describe how boosting algorithms learn from previous errors",
       "title_fm": "ML Algorithms Explained with Analogies"
+    },
+    {
+      "id": "m11",
+      "slug": "progressive-delivery",
+      "label": "M9 · Progressive Delivery for Models",
+      "title": "Releasing Models Safely with Argo Rollouts",
+      "objectives": [
+        "Explain why a Deployment cannot protect you from a model that fails quietly",
+        "Run a candidate and the stable version side by side with an Argo Rollout",
+        "Promote and abort explicitly, without a redeploy or a rollback",
+        "Turn a Prometheus query into a pass or fail promotion gate",
+        "Write PromQL that stays honest when traffic is low or absent",
+        "Run staging and production from one set of manifests with kustomize overlays"
+      ],
+      "lab_intent": "Three labs. Replace the Deployment with a blue/green Rollout, gate promotion on latency, error rate and a traffic floor, then split the system into staging and production overlays with commit-SHA image tags.",
+      "deep_dive_intent": "Why histogram_quantile returns NaN with no samples, what group_left is doing in the traffic-safe guard, and how Rollouts manages Service selectors during a promotion.",
+      "folder": "m11-progressive-delivery",
+      "objectives_md": "- Explain why a Deployment cannot protect you from a model that fails quietly\n- Run a candidate and the stable version side by side with an Argo Rollout\n- Promote and abort explicitly, without a redeploy or a rollback\n- Turn a Prometheus query into a pass or fail promotion gate\n- Write PromQL that stays honest when traffic is low or absent\n- Run staging and production from one set of manifests with kustomize overlays",
+      "title_fm": "Releasing Models Safely with Argo Rollouts"
+    },
+    {
+      "id": "m12",
+      "slug": "drift-and-retraining",
+      "label": "M10 · Drift Detection and Retraining",
+      "title": "Drift Detection and Automated Retraining",
+      "objectives": [
+        "Describe data drift and why every service-level check misses it",
+        "Capture a baseline in the transformed feature space and explain why the raw space is wrong",
+        "Score incoming requests with z-scores and export drift as Prometheus metrics",
+        "Alert on your own instrumentation being broken, not only on the thing it measures",
+        "Trigger retraining from evidence rather than from a schedule",
+        "Trace one full cycle from drift through retrain to a promoted model"
+      ],
+      "lab_intent": "Two labs. Instrument the model to score drift against a training baseline and gate releases on it, then close the loop so sustained drift triggers a retrain that flows back through GitOps and the gates.",
+      "deep_dive_intent": "Training and inference feature parity as a failure class, why the mean of top-K z-scores beats a flat mean, and what the drift signal cannot tell you about why the data changed.",
+      "folder": "m12-drift-and-retraining",
+      "objectives_md": "- Describe data drift and why every service-level check misses it\n- Capture a baseline in the transformed feature space and explain why the raw space is wrong\n- Score incoming requests with z-scores and export drift as Prometheus metrics\n- Alert on your own instrumentation being broken, not only on the thing it measures\n- Trigger retraining from evidence rather than from a schedule\n- Trace one full cycle from drift through retrain to a promoted model",
+      "title_fm": "Drift Detection and Automated Retraining"
     }
   ],
   "repos": {
     "src": "schoolofdevops/402-mlops-src",
     "labs": "schoolofdevops/402-mlops-labs",
-    "site": "schoolofdevops/402-mlops"
+    "site": "schoolofdevops/402-mlops-site"
   },
   "today": "2026-09-11"
 }

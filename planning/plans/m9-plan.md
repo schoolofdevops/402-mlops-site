@@ -1,4 +1,4 @@
-# Plan: M9 · Appendix A — MLOps Foundations — MLOps Foundations and Context
+# Plan: Appendix A · MLOps Foundations — MLOps Foundations and Context
 
 **Goal:** Author MLOps Foundations and Context fully (lesson + lab + quiz) and validate the lab live.
 

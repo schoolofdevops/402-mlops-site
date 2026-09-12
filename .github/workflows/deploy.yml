@@ -1,18 +1,20 @@
 name: Deploy course site
 
-# Single-repo publish: this repo builds site/ and deploys it straight to GitHub
-# Pages using the built-in GITHUB_TOKEN. No personal access token required.
-# Setup (once): repo Settings -> Pages -> Source = GitHub Actions.
+# Three-repo publish: this (private src) repo builds site/ and pushes the built
+# site to the gh-pages branch of the PUBLIC site repo (schoolofdevops/402-mlops-site).
+# Setup (once): create a fine-grained PAT with contents:write on schoolofdevops/402-mlops-site
+# and add it to this repo's Actions secrets as DEPLOY_TOKEN.
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Allow one concurrent deployment; don't cancel an in-progress production deploy.
 concurrency:
@@ -20,15 +22,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build site
+  build-and-publish:
+    name: Build site & publish to schoolofdevops/402-mlops-site
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: site
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -37,20 +39,11 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Publish to the public site repo (gh-pages)
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          # path is relative to the repo root, not the job working-directory
-          path: site/build
-
-  deploy:
-    name: Deploy to Pages
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          personal_token: ${{ secrets.DEPLOY_TOKEN }}
+          external_repository: schoolofdevops/402-mlops-site
+          publish_branch: gh-pages
+          # path is relative to the repo root (not the job working-directory)
+          publish_dir: site/build
