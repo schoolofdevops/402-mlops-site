@@ -1,0 +1,233 @@
+---
+sidebar_position: 1
+title: 'Lesson: The ML Lifecycle and the Project You Will Build'
+---
+
+# The ML Lifecycle and the Project You Will Build
+
+Before a DevOps engineer can be useful on a project, they need to know what the application does.
+Which language, which build tools, how it is packaged, how it gets deployed.
+
+MLOps is the same. You do not need to build models. You do need to understand how the people
+around you work, so you can automate their workflow and follow the conversation in a meeting.
+
+This module gives you the map. One problem, one project, and a clear line showing where your work
+begins.
+
+## What you'll learn
+
+- Describe the house price prediction problem and why it is a regression task
+- Walk the end-to-end machine learning lifecycle from raw data to a served model
+- Identify which parts belong to the data scientist and which belong to you
+- Name the point in the lifecycle where MLOps work actually begins
+
+## The problem
+
+You are predicting the price of a house.
+
+```mermaid
+flowchart LR
+    subgraph IN["What you know — the inputs"]
+        direction TB
+        I1["square footage"]
+        I2["bedrooms"]
+        I3["bathrooms"]
+        I4["location"]
+        I5["year built"]
+        I6["condition"]
+    end
+
+    IN --> M["the model"]
+    M --> OUT["predicted price"]
+
+    style IN fill:#e3f2fd
+    style M fill:#fff4e5
+    style OUT fill:#c8e6c9
+```
+
+Small dataset, simple problem, and close enough to a real application that everything you learn
+transfers. There is even a web interface on top, so you can watch it work.
+
+That last part matters more than it sounds. A course where the output is a number in a terminal
+is much harder to stay interested in than one where you can open a page and get a price.
+
+### Regression, not classification
+
+```mermaid
+flowchart TB
+    P["what kind of<br/>question is it?"] --> R["REGRESSION<br/>predict a NUMBER"]
+    P --> C["CLASSIFICATION<br/>predict a CATEGORY"]
+
+    R --> R1["what price will<br/>this house sell for?"]
+    R --> R2["how many units<br/>next month?"]
+
+    C --> C1["is this email<br/>spam or not?"]
+    C --> C2["will this customer<br/>buy or not?"]
+
+    style R fill:#c8e6c9
+    style C fill:#e3f2fd
+```
+
+Price is a continuous number, so this is a **regression** problem. That single fact decides which
+algorithms are candidates and which scores are used to judge them.
+
+## The lifecycle, and the line that matters
+
+Here is the whole course in one picture. Find the dotted line.
+
+```mermaid
+flowchart TB
+    D0[("raw data")] --> DE["data engineering<br/>collect, clean, fix types,<br/>handle missing values"]
+    DE --> EDA["exploratory data analysis<br/>which features matter?"]
+    EDA --> FE["feature engineering<br/>build better columns"]
+    FE --> EXP["model experimentation<br/>which algorithm?<br/>which hyperparameters?"]
+    EXP --> ART["OUTPUT:<br/>featured data<br/>preprocessor.pkl<br/>model_config.yaml"]
+
+    ART --> SCRIPTS["notebooks → scripts<br/>feature engineering, training"]
+    SCRIPTS --> WRAP["wrap the model<br/>in FastAPI"]
+    WRAP --> APPS["build client apps"]
+
+    APPS -.-> LINE{{"══ MLOps work starts here ══"}}
+
+    LINE --> PKG["package into containers<br/>Dockerfile, Compose"]
+    PKG --> CI["CI / workflow pipeline<br/>GitHub Actions"]
+    CI --> CD["CD to Kubernetes<br/>Argo CD"]
+    CD --> MON["monitoring, scaling,<br/>drift, retraining"]
+    MON -.->|"retrain"| DE
+
+    style ART fill:#fff4e5
+    style LINE fill:#c8e6c9
+    style PKG fill:#e8f5e9
+    style CI fill:#e8f5e9
+    style CD fill:#e8f5e9
+    style MON fill:#e8f5e9
+```
+
+Everything above the line is somebody else's job, and this course has you **understand** it,
+module 3, not do it for a living.
+
+Everything below the line is yours, and that is modules 4 through 10.
+
+Notice the arrow looping from monitoring back to data engineering. That loop is the whole point
+of the last two modules, and it is what separates a deployed model from an operated one.
+
+## Who does what
+
+```mermaid
+flowchart LR
+    DE2["Data engineer<br/>collect, clean,<br/>make it usable"] --> DS["Data scientist<br/>explore, engineer features,<br/>experiment, choose"]
+    DS --> MLE["ML engineer<br/>notebooks → scripts,<br/>wrap the model,<br/>build the app"]
+    MLE --> YOU["MLOps engineer<br/>package, automate,<br/>deploy, observe,<br/>scale, retrain"]
+
+    style YOU fill:#c8e6c9
+```
+
+:::note[These boxes are not walls]
+In a small team one person does all four. In a large one there are separate teams. Developers do
+DevOps work, and ML engineers do MLOps work.
+
+The point of drawing the boxes is not to build silos. It is so you know whose problem you are
+looking at, and who to talk to.
+:::
+
+## Why models need their own operations practice
+
+A fair question: if this is just deployment and monitoring, why is there a separate discipline?
+
+### Data scientists optimise for something different
+
+```mermaid
+flowchart TB
+    subgraph NB["Notebook world"]
+        direction TB
+        N1["fixed, static dataset"]
+        N2["accuracy is the goal"]
+        N3["a two minute answer<br/>is acceptable"]
+        N4["runs once, by hand"]
+    end
+
+    subgraph PR["Production world"]
+        direction TB
+        P1["live data, always changing"]
+        P2["accuracy AND latency"]
+        P3["users leave after<br/>a few seconds"]
+        P4["runs constantly, unattended"]
+    end
+
+    NB ==>|"the gap you close"| PR
+
+    style NB fill:#e3f2fd
+    style PR fill:#fff4e5
+```
+
+A model can be excellent by every theoretical benchmark and useless in production because it
+takes two minutes to answer. Nobody in the notebook world was measuring that. You are.
+
+### Models fail without failing
+
+This is the one to remember.
+
+```mermaid
+flowchart TB
+    subgraph SW["Normal software breaks LOUDLY"]
+        direction TB
+        S1["exception thrown"]
+        S2["container exits"]
+        S3["health check red"]
+        S4["→ you find out in seconds"]
+    end
+
+    subgraph ML["A model breaks QUIETLY"]
+        direction TB
+        M1["returns 200 OK"]
+        M2["returns a plausible number"]
+        M3["the number is wrong"]
+        M4["→ you find out in months"]
+    end
+
+    style SW fill:#e8f5e9
+    style ML fill:#ffebee
+```
+
+When the incoming data drifts away from what the model was trained on, the relationship it
+learned no longer holds. It does not raise an error. It just predicts badly, confidently.
+
+Nothing in a normal monitoring stack catches that, which is why **data drift** and **model
+degradation** need their own tools and their own signals. You build exactly that in Module 10.
+
+## What you will have built by the end
+
+```mermaid
+flowchart LR
+    A["train it<br/>with a pipeline"] --> B["package it<br/>in a container"]
+    B --> C["deploy it<br/>on Kubernetes"]
+    C --> D["watch it<br/>Prometheus + Grafana"]
+    D --> E["scale it<br/>KEDA + VPA"]
+    E --> F["deliver it<br/>GitOps + Argo CD"]
+    F --> G["release it safely<br/>gated blue/green"]
+    G --> H["retrain it<br/>on drift"]
+    H -.-> A
+
+    style A fill:#e3f2fd
+    style H fill:#c8e6c9
+```
+
+One repository, grown module by module. You fork it once in Module 2 and never start over.
+
+:::tip[Your existing skills transfer more than you think]
+If you already do DevOps, you are the expert here on containers, CI, Kubernetes and monitoring.
+That is most of the boxes above.
+
+What is new is a handful of ideas: models come with a preprocessor, experiments need tracking,
+and failure can be silent. MLOps is an extension of what you already know, not a replacement for
+it.
+:::
+
+## What comes next
+
+Module 2 sets up your workstation and gets MLflow running.
+
+Module 3 puts you in the data scientist's chair for one module, so the handover in Module 4 makes
+sense.
+
+From Module 4 onward you are on your own ground, and it stays that way to the end.
