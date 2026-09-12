@@ -43,6 +43,15 @@ LABS = {
 
 NO_LAB = ["m1-ml-lifecycle-and-project", "m9-mlops-foundations", "m10-ml-algorithms"]
 
+# Authored lesson pages use .mdx so they can embed JSX components later.
+# The scaffold writes lesson.md stubs; drop the stub where a real .mdx exists.
+def drop_superseded_lesson_stubs(docs):
+    for mdx in docs.glob("*/lesson.mdx"):
+        stub = mdx.with_suffix(".md")
+        if stub.exists():
+            stub.unlink()
+            print(f"  rm   {stub.parent.name}/lesson.md (superseded by lesson.mdx)")
+
 QUIZZES = {
     "m1-ml-lifecycle-and-project": "section-01-introduction.md",
     "m2-environment-setup": "section-02-environment-setup.md",
@@ -175,6 +184,8 @@ def main():
         if stub.exists():
             stub.unlink()
             print(f"  rm   {folder}/lab.md (concept module, no lab)")
+
+    drop_superseded_lesson_stubs(DOCS)
 
     # --- quizzes ----------------------------------------------------------
     cfg = json.loads(pathlib.Path("course.config.json").read_text(encoding="utf-8"))
