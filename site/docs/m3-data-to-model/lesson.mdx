@@ -1,348 +1,522 @@
 ---
 sidebar_position: 1
-title: 'Lesson: From Raw Data to a Trained Model'
+title: 'Lesson: Data, Features and Models'
 ---
 
-# From Raw Data to a Trained Model
+# Data, Features and Models
 
-You are not going to be asked to build models for a living. So why does an MLOps engineer need
-to sit through data cleaning and feature engineering?
+This page is the reference chapter for the ideas behind Module 3. It goes further than the lab
+needs, on purpose. Read it before the lab for grounding, or after it when something did not quite
+make sense, or come back to it in six months when a data scientist says "we have leakage" and you
+want to know what that means.
 
-Same reason a DevOps engineer learns how the application is built. You cannot automate a
-pipeline you do not understand. You cannot size the machines for a training job if you have no
-idea what the job does. And when you are in a meeting with a data scientist, you need to follow
-what they are saying.
+The lab teaches you to run the pipeline. This teaches you what the pipeline is doing.
 
-This module puts you in their chair for a while. You will not write much code. You will read
-what they wrote, run it, and understand why each step exists.
+---
 
-## What you'll learn
+## 1. Why this is hard
 
-- Clean a raw dataset and explain what was dropped and why
-- Build engineered features and save the transformation as a reusable preprocessor
-- Split data into training and test sets, and read `X_train`, `y_train`, `X_test`, `y_test`
-- Define algorithm and hyperparameter grids, and compare the runs
-- Track every experiment in MLflow and defend which model won
+A model is an algorithm that has learned a relationship from data. Everything difficult about
+machine learning follows from one property of that sentence: **the relationship is learned, not
+written**.
 
-## The same data, three different pairs of eyes
+Nobody can read the model and check the logic. There is no line of code saying "add 12% if the
+house has a garage". There is a set of numbers that happens to reproduce the training data well.
 
-One CSV file sits on a shared drive. Three people open it and see three completely different
-things.
+That has three consequences you will live with for the rest of this course.
 
 ```mermaid
-flowchart TD
-    DATA[("house_data.csv")]
+flowchart TB
+    L["the relationship is<br/>LEARNED, not written"] --> C1["you cannot review it<br/>→ you must TEST it statistically"]
+    L --> C2["it is only valid for data that<br/>looks like the training data<br/>→ DRIFT is a failure mode"]
+    L --> C3["its behaviour depends on data<br/>you no longer have<br/>→ REPRODUCIBILITY is infrastructure"]
 
-    DATA --> A["DevOps engineer"]
-    DATA --> B["Data engineer"]
-    DATA --> C["Data scientist"]
+    style L fill:#fff4e5
+    style C2 fill:#ffebee
+```
 
-    A --> A1["Where does this live?<br/>Is the storage reliable?<br/>Who can read it?"]
-    B --> B1["Are there null values?<br/>Any outliers?<br/>Is it clean enough<br/>to hand over?"]
-    C --> C1["Which columns predict<br/>the price?<br/>What can I build<br/>from this?"]
+Each of those is an operational problem, not a modelling one. Which is why they are your problem.
 
-    style A fill:#e3f2fd
+---
+
+## 2. Data quality dominates everything
+
+There is an old rule that holds up well: the quality of the data sets the ceiling on the quality
+of the model. A better algorithm on bad data loses to a mediocre algorithm on good data, almost
+every time.
+
+### 2.1 Missing values are not all the same
+
+Statisticians separate missing data into three kinds, and the distinction decides what you are
+allowed to do about it.
+
+| Kind | Meaning | Example | Safe to fill in? |
+|---|---|---|---|
+| **MCAR** — missing completely at random | the gap has nothing to do with anything | a sensor dropped a reading | Yes, low risk |
+| **MAR** — missing at random | the gap depends on *other columns you have* | older listings omit `condition` | Yes, if you use those columns |
+| **MNAR** — missing not at random | the gap depends on *the missing value itself* | owners hide the price when it is very low | **No. Filling it in creates bias** |
+
+```mermaid
+flowchart TB
+    M["a missing value"] --> Q{"why is it missing?"}
+    Q -->|"no reason"| A["MCAR<br/>fill with mean/median"]
+    Q -->|"explained by<br/>other columns"| B["MAR<br/>fill using those columns"]
+    Q -->|"explained by the<br/>value itself"| C["MNAR<br/>filling it LIES.<br/>Record the absence<br/>as its own feature"]
+
+    style A fill:#e8f5e9
     style B fill:#fff4e5
-    style C fill:#e8f5e9
+    style C fill:#ffebee
 ```
 
-None of them is wrong. They are just solving different problems with the same file. In a real
-team you sit next to all three, so it helps to know which question each one is asking.
+The MNAR case is the dangerous one, because the usual fix makes it worse. If low prices are
+systematically missing and you fill them with the average, you have just taught the model that
+those houses are averagely priced. The honest move is often to add a `price_was_missing` column
+and let the model use the absence as information.
 
-## Step one, the data engineer cleans it
+:::warning[Dropping rows is a modelling decision]
+Every row you drop is a decision about what the model will never learn. If the dropped rows share
+something — one neighbourhood, one price band, one time period — you have quietly removed that
+group from the model's world.
 
-The quality of the data decides the accuracy of the model. Nothing you do later recovers from
-bad data going in.
-
-A data engineer starts by asking where the data even comes from. Transaction logs. Application
-logs. A third-party feed. For learning, a public dataset from somewhere like Kaggle. Then they
-pull it together into one table and start fixing it.
-
-```mermaid
-flowchart LR
-    R["raw data<br/>84 rows"] --> C1["check null<br/>and missing values"]
-    C1 --> C2["check data types"]
-    C2 --> C3["sanity checks<br/>price cannot be negative<br/>sqft cannot be zero"]
-    C3 --> C4["remove outliers"]
-    C4 --> C5["drop duplicates"]
-    C5 --> OUT["cleaned data<br/>77 rows"]
-
-    style R fill:#ffebee
-    style OUT fill:#e8f5e9
-```
-
-In this project the cleaning step removes seven rows and you end up with 77. Those seven were
-outliers, which is nothing but values so far from the rest that they pull the model's answers
-around with them.
-
-:::warning[Dropping rows is a decision, not a detail]
-Every row you remove is a choice about what the model will never learn from. If the rows you
-drop share something in common, for example they are all from one neighbourhood, you have just
-taught the model to ignore that neighbourhood.
-
-Always ask which rows were dropped and why. "The script removed them" is not an answer.
+In the lab, cleaning takes 84 rows down to 77. Eight percent of the data. Always ask which eight
+percent.
 :::
 
-A missing value has the same weight of decision behind it. Do you fill it with the average? With
-the most common value? Do you drop the row? Each choice changes the model. This is where domain
-knowledge matters more than code.
+### 2.2 Outliers, and the two reasons they appear
 
-## Step two, the data scientist explores it
+An outlier is a value far from the rest. There are two completely different causes and they need
+opposite treatment.
 
-Now the file moves to the data scientist, and they do something called **exploratory data
-analysis**, or EDA. The goal is not to build anything. The goal is to understand the data well
-enough to know what is worth building.
+- **An error.** A price of ₹1, a square footage of 0, a year built of 12024. Remove it.
+- **A real extreme.** A genuine mansion in a dataset of ordinary houses. It is true data.
 
-They plot things.
+Removing real extremes makes the model neater and blind. A model trained only on ordinary houses
+will predict confidently and badly when a mansion arrives — and it will not tell you, which is
+exactly the drift problem from Module 10 arriving early.
 
-- **A distribution of prices**, to see whether the data is balanced or crowded at one end
-- **A correlation heat map**, to see which columns move together
-- **Scatter plots**, to see whether a relationship is a straight line or something messier
-- **Bar charts by category**, to see whether some groups barely appear in the data
+---
 
-In this dataset, square footage and price turn out to be closely related, and close to linear.
-Bigger house, higher price, in a fairly straight line. Year built turns out to be the weakest
-relationship of the lot.
+## 3. The central trade-off: bias and variance
 
-That is a useful finding. It tells you which columns carry the signal.
+This is the single most useful idea in this chapter. Almost every choice a data scientist makes is
+a move along this axis.
 
-The bar chart by location shows something else. The data is reasonably balanced except for
-houses in the mountains, where there are very few. So the honest next step is to go and collect
-more mountain houses, rather than pretend the model knows anything about them.
-
-:::note[Why data scientists love notebooks]
-Talk to a data scientist and you may notice they do not care much about containers or Git. Give
-them a notebook, a virtual environment and the data, and they are happy.
-
-That is not carelessness. Exploration means you do not know the next step until you see the
-result of this one. A notebook suits that. A script does not.
-:::
-
-## Step three, feature engineering
-
-A **feature** is nothing but a column the model learns from. **Feature engineering** is making
-better columns out of the ones you already have.
-
-There are three different things hiding under that one name.
+**Bias** is error from the model being too simple to capture the real pattern.
+**Variance** is error from the model being so flexible that it learns the noise as well as the
+signal.
 
 ```mermaid
 flowchart TB
-    subgraph ONE["1 — Create new columns"]
-        direction LR
-        O1["year_built"] --> O2["house_age<br/>= this year − year_built"]
-        O3["price + sqft"] --> O4["price_per_sqft"]
-        O5["bedrooms + bathrooms"] --> O6["bed_bath_ratio"]
-    end
-
-    subgraph TWO["2 — Split one column into several"]
-        direction LR
-        T1["full address"] --> T2["street"]
-        T1 --> T3["city"]
-        T1 --> T4["zip code"]
-    end
-
-    subgraph THREE["3 — Encode text as numbers"]
-        direction LR
-        E1["small / medium / large"] --> E2["1,0,0<br/>0,1,0<br/>0,0,1"]
-    end
-
-    style ONE fill:#e8f5e9
-    style TWO fill:#fff4e5
-    style THREE fill:#e3f2fd
-```
-
-**Creating new columns** is the obvious one. The raw data has `year_built`, but what the price
-actually depends on is how old the house is. So `house_age` is a better column to learn from
-than the year itself.
-
-**Splitting a column** matters when one field holds several facts. A full address is one column,
-but prices often follow zip codes. Split it, and the model can see the pattern.
-
-**Encoding** turns words into numbers, because a model cannot learn from the word `suburban`.
-The t-shirt example is the easiest way to hold it. Small, medium and large become three columns,
-and a small t-shirt is `1, 0, 0`. This is called **one-hot encoding**.
-
-That same idea grows up into something you may have heard of elsewhere. When people talk about
-vectors and vector databases for large language models, a vector is a form of encoding too. Text
-turned into numbers, so a machine can measure how close two things are.
-
-### The preprocessor, and why it is the artifact people forget
-
-Here is the part that bites teams later.
-
-You engineered these features during training. At prediction time, a request arrives with raw
-values, `sqft`, `bedrooms`, `location`. Those have to go through **exactly the same
-transformation** before the model sees them.
-
-So the transformation is not just applied, it is **saved**, as `preprocessor.pkl`.
-
-```mermaid
-flowchart TB
-    subgraph TRAIN["Training time"]
-        direction LR
-        TR1["raw training data"] --> TR2["fit the transformation"]
-        TR2 --> TR3["preprocessor.pkl"]
-        TR2 --> TR4["featured data"]
-        TR4 --> TR5["train the model"]
-        TR5 --> TR6["model.pkl"]
-    end
-
-    subgraph INFER["Prediction time"]
-        direction LR
-        IN1["raw request"] --> IN2["load preprocessor.pkl<br/>apply the SAME transform"]
-        IN2 --> IN3["load model.pkl"]
-        IN3 --> IN4["a price"]
-    end
-
-    TR3 ==> IN2
-    TR6 ==> IN3
-
-    style TR3 fill:#fff4e5
-    style TR6 fill:#fff4e5
-    style INFER fill:#e8f5e9
-```
-
-You end up with **two** files, not one. People remember the model and forget the preprocessor.
-When the two drift apart, nothing crashes. The predictions just quietly go wrong, which is much
-worse.
-
-## Step four, splitting the data
-
-Now the model needs to learn, and you need a way to check whether it learned anything.
-
-You cannot test a model on the data it learned from. It has seen those answers already. So the
-data gets split, twice.
-
-**First split, X and y.**
-
-```mermaid
-flowchart LR
-    D["the full table"] --> X["X<br/>sqft, bedrooms, bathrooms,<br/>location, year_built...<br/>the INPUTS"]
-    D --> Y["y<br/>price<br/>the ANSWER"]
-
-    style X fill:#e3f2fd
-    style Y fill:#fff4e5
-```
-
-Capital `X` is what the model reads. Small `y` is what it has to predict. Once you know that,
-most machine learning code becomes much easier to read.
-
-**Second split, train and test.**
-
-```mermaid
-flowchart TB
-    ALL["100 rows"] --> TR["80 rows — TRAINING<br/>X_train + y_train<br/>model sees questions AND answers"]
-    ALL --> TE["20 rows — TEST<br/>X_test + y_test<br/>model sees questions only"]
-
-    TR --> M["trained model"]
-    TE -->|"X_test"| M
-    M --> P["predicted prices"]
-    P --> CMP{"compare against<br/>y_test"}
-    TE -->|"y_test"| CMP
-    CMP --> S["the score"]
-
-    style TR fill:#e8f5e9
-    style TE fill:#fff4e5
-    style S fill:#e3f2fd
-```
-
-Think of it like studying for an exam.
-
-While studying, you get the problems **and** the worked solutions. That is the training set,
-`X_train` and `y_train`.
-
-In the exam, you get the questions only. That is `X_test`. You produce answers, and the examiner
-compares them against the real solutions, `y_test`, which you never saw.
-
-:::warning[y_test is never shown to the model]
-This is the whole point. The moment test answers leak into training, your score becomes
-meaningless and you will not find out until production.
-:::
-
-The `random_state` value you see in the code is there so the split happens the same way every
-time. Same split, same result, reproducible experiment.
-
-## Step five, running the experiments
-
-Now, which algorithm?
-
-You would not pick one and hope. You list several candidates and let the code try them all.
-
-:::note[Algorithm or model?]
-Worth being precise, because people use the words loosely. **Linear regression is an
-algorithm.** You apply it to data, it learns, and the learned thing that comes out is the
-**model**.
-
-So "random forest" is an algorithm. The `.pkl` file on your disk is a model.
-:::
-
-For each algorithm you also list the settings worth trying. Those are **hyperparameters**, which
-are nothing but the values you choose rather than the ones the model learns.
-
-```mermaid
-flowchart LR
-    subgraph GRID["The grid"]
+    subgraph U["UNDERFIT — high bias"]
         direction TB
-        A1["Linear regression"]
-        A2["Random forest<br/>n_estimators: 50, 100, 200<br/>max_depth: 5, 10, None"]
-        A3["Gradient boosting<br/>n_estimators: 50, 100<br/>learning_rate: 0.01, 0.1"]
-        A4["XGBoost<br/>..."]
+        U1["model too simple"]
+        U2["misses the real pattern"]
+        U3["bad on training data<br/>bad on new data"]
     end
 
-    GRID --> GS["GridSearchCV<br/>cv = 3"]
-    GS --> R1["try every combination"]
-    R1 --> R2["score each one"]
-    R2 --> BEST["the winner<br/>+ its settings"]
-    BEST --> CFG["configs/model_config.yaml"]
-    R2 --> ML[("MLflow<br/>every run recorded")]
+    subgraph G["GOOD FIT"]
+        direction TB
+        G1["captures signal,<br/>ignores noise"]
+        G2["good on training<br/>good on new data"]
+    end
 
-    style BEST fill:#c8e6c9
-    style CFG fill:#fff4e5
-    style ML fill:#e3f2fd
+    subgraph O["OVERFIT — high variance"]
+        direction TB
+        O1["model too flexible"]
+        O2["memorises the training rows"]
+        O3["EXCELLENT on training<br/>bad on new data"]
+    end
+
+    U --> G --> O
+
+    style U fill:#fff4e5
+    style G fill:#c8e6c9
+    style O fill:#ffebee
 ```
 
-Two of those settings are worth understanding, because they both trade accuracy against compute.
+### The exam analogy, taken one step further
 
-**`n_estimators` on a random forest** is how many trees it builds. More trees usually means a
-better decision, and also more CPU and more time. So you look for a value that is good enough
-rather than the highest one.
+A student who has not studied fails both the practice papers and the real exam. That is
+**underfitting**.
 
-**`learning_rate` on a boosting algorithm** is how fast it learns from its mistakes. It is a bit
-like eating. Eat too fast and you finish quickly, but you do not digest it properly. Go slower
-and you learn better, but it takes longer and costs more compute.
+A student who memorises the answers to the practice papers scores full marks on them, then fails
+the real exam because the questions are different. That is **overfitting**, and it is the more
+dangerous of the two, because on the surface it looks like success.
 
-**`cv = 3`** means cross validation with three folds. The data gets split three different ways,
-each combination is tried on each split, and the results are averaged. One lucky split cannot
-crown a winner on its own.
+:::note[Why overfitting is the one to fear operationally]
+An underfit model looks bad immediately and never ships. An overfit model reports a wonderful
+training score, passes a casual review, ships, and performs badly in production.
 
-The output of all this is `configs/model_config.yaml`, holding the winning algorithm and its
-settings. That file is the handover to the training script, and to you.
+The training score is not evidence. Only the held-out score is.
+:::
 
-## Why MLflow was running the whole time
+### What moves you along the axis
 
-Every one of those runs gets recorded. The parameters used, the score achieved, and the model
-itself.
+| Move | Effect |
+|---|---|
+| More training data | reduces variance. The most reliable fix there is |
+| Fewer features | reduces variance, may add bias |
+| Simpler algorithm | more bias, less variance |
+| Deeper tree / more layers | less bias, more variance |
+| Regularisation | deliberately adds a little bias to cut variance |
+| More trees in a random forest | reduces variance without much added bias |
 
-That matters for a reason that has nothing to do with data science. Six months from now,
-somebody will ask why the model predicts what it predicts. Without a record, the honest answer
-is "we do not know". With MLflow, you can point at the exact run.
+That last row is why random forests are such a dependable default, and it is what
+`n_estimators` is actually buying you.
 
-You will come back to this in Module 10, where a drifting model triggers a retrain and you need
-to compare the new model against the old one to decide whether it is safe to ship.
+---
 
-## What you should have at the end
+## 4. Splitting data, and why one split is not enough
 
-Running the lab leaves you with:
+### 4.1 The basic split
 
-- `data/processed/cleaned_house_data.csv`, the cleaned data
-- `data/processed/featured_house_data.csv`, with the engineered columns
-- `models/trained/preprocessor.pkl`, the saved transformation
-- `models/trained/house_price_model.pkl`, the trained model
-- `configs/model_config.yaml`, the winning configuration
-- runs visible in MLflow at `localhost:5555`
+You cannot judge a model on data it learned from. So you hold some back.
 
-Those last two files, the model and the preprocessor, are exactly what a data scientist would
-hand you in real life.
+By convention, capital **X** is the input matrix and small **y** is the target vector. Once you
+know that, most ML code becomes readable.
 
-In Module 4 you stop being the data scientist. You take those two files, wrap them in an API,
-and package the whole thing into a container image that runs anywhere.
+### 4.2 Why you need a third set
+
+Here is the part most introductions skip.
+
+If you use the test set to *choose* between models — try five algorithms, pick the one with the
+best test score — then you have used the test set to make a decision. Its score is now
+optimistic, because you selected for it.
+
+```mermaid
+flowchart TB
+    D["all data"] --> TR["TRAIN ~60%<br/>the model learns here"]
+    D --> VA["VALIDATION ~20%<br/>choose between models<br/>and tune hyperparameters"]
+    D --> TE["TEST ~20%<br/>touched ONCE, at the end<br/>the honest estimate"]
+
+    TR --> M["candidate models"]
+    M --> VA
+    VA --> B["the winner"]
+    B --> TE
+    TE --> S["the number you report"]
+
+    style VA fill:#fff4e5
+    style TE fill:#c8e6c9
+```
+
+The test set is a one-shot resource. Every time you look at it and change something, you spend a
+little of its honesty.
+
+### 4.3 Cross-validation, and what `cv=3` means
+
+Holding out 20% has a problem on small data: your estimate depends on which 20% you happened to
+hold out. One unlucky split and you draw the wrong conclusion.
+
+**K-fold cross-validation** removes that luck. Split the data into k parts, train k times, each
+time holding out a different part, then average the scores.
+
+```mermaid
+flowchart TB
+    subgraph K["3-fold cross-validation"]
+        direction TB
+        R1["round 1:  [TEST][train][train]  → score 1"]
+        R2["round 2:  [train][TEST][train]  → score 2"]
+        R3["round 3:  [train][train][TEST]  → score 3"]
+    end
+    K --> AVG["average of the three<br/>= a far steadier estimate"]
+
+    style AVG fill:#c8e6c9
+```
+
+That is what `GridSearchCV(..., cv=3)` is doing. Every hyperparameter combination is evaluated
+three times on three different splits. It costs three times the compute and buys you a result you
+can trust.
+
+:::tip[Choosing k]
+k=5 or k=10 is typical. Higher k means a better estimate and more compute. The course uses 3
+because the dataset is tiny and the runtime should stay short.
+:::
+
+---
+
+## 5. Data leakage — the failure that looks like success
+
+**Leakage** is when information that would not be available at prediction time leaks into
+training. It is the most common cause of a model that scores brilliantly and fails in production.
+
+```mermaid
+flowchart TB
+    L["leakage"] --> L1["TARGET leakage<br/>a feature contains the answer"]
+    L --> L2["TRAIN/TEST contamination<br/>test rows influenced training"]
+    L --> L3["TEMPORAL leakage<br/>the model saw the future"]
+
+    L1 --> E1["price_per_sqft as an input<br/>when predicting price.<br/>It contains price."]
+    L2 --> E2["scaler fitted on ALL data<br/>before splitting.<br/>Test statistics leaked in."]
+    L3 --> E3["random split on time-series data.<br/>Model trained on next week,<br/>tested on last week."]
+
+    style L fill:#ffebee
+    style E1 fill:#fff4e5
+    style E2 fill:#fff4e5
+    style E3 fill:#fff4e5
+```
+
+The symptom is always the same and always seductive: **an unusually good score**. A model that
+suddenly reports 99% accuracy has usually found a leak, not a breakthrough.
+
+:::warning[There is a live example in this project]
+The feature engineering step creates `price_per_sqft`, computed as price divided by square
+footage. As a training input for predicting **price**, that is textbook target leakage — the
+answer is inside the feature.
+
+Look at `make_baseline.py` in Module 10 and you will see `df["price_per_sqft"] = 0`, a dummy value
+kept only so the column count matches. That line is a scar from exactly this issue.
+
+Worth knowing, because you will meet this pattern in real projects and it is rarely labelled.
+:::
+
+### Why the preprocessor is fitted on training data only
+
+This is the mechanical defence against contamination, and it explains a detail that otherwise
+looks arbitrary.
+
+```mermaid
+flowchart LR
+    subgraph W["WRONG"]
+        direction TB
+        W1["fit scaler on ALL data"] --> W2["then split"]
+        W2 --> W3["test set's mean and std<br/>influenced the scaling.<br/>Score is optimistic."]
+    end
+
+    subgraph R["RIGHT"]
+        direction TB
+        R1["split first"] --> R2["fit on TRAIN only"]
+        R2 --> R3["transform train AND test<br/>with those training statistics"]
+    end
+
+    style W fill:#ffebee
+    style R fill:#e8f5e9
+```
+
+`fit()` learns the statistics. `transform()` applies them. You **fit on training data, transform
+everything**. At prediction time in production there is no fitting at all, only transform — which
+is precisely why the fitted object is saved to disk as `preprocessor.pkl`.
+
+---
+
+## 6. Feature engineering, properly
+
+A feature is a column the model learns from. Feature engineering is making better columns.
+
+It is worth taking seriously because on tabular data, **good features usually beat a better
+algorithm**. Moving from linear regression to gradient boosting might buy you a few percent. A
+well-chosen feature can buy far more.
+
+### 6.1 Three operations
+
+| Operation | What it does | Example |
+|---|---|---|
+| **Derive** | combine existing columns | `house_age = this_year − year_built` |
+| **Decompose** | split one column into several | address → street, city, postcode |
+| **Encode** | turn categories into numbers | `location` → indicator columns |
+
+### 6.2 Encoding is a decision with consequences
+
+Most introductions show one-hot encoding and stop. There are several schemes and they behave very
+differently.
+
+| Scheme | How it works | Cost | Use when |
+|---|---|---|---|
+| **One-hot** | one column per category | explodes with high cardinality | few categories, no natural order |
+| **Ordinal** | map to 0,1,2,3 | implies an order that may not exist | genuinely ordered (small/medium/large) |
+| **Target / mean** | replace with the mean target for that category | **leaks badly** unless done inside CV folds | high cardinality, and you are careful |
+| **Hashing** | hash into a fixed number of columns | collisions, unexplainable | very high cardinality, memory-bound |
+| **Embeddings** | learned dense vectors | needs a neural network, needs data | very high cardinality, deep models |
+
+:::warning[The cardinality trap]
+One-hot encoding a postcode column with 20,000 distinct values produces 20,000 columns. Your
+feature matrix explodes, training slows to a crawl, and most columns are almost entirely zero.
+
+This is an infrastructure problem as much as a modelling one — memory, training time, model size.
+When a data scientist proposes one-hot encoding a high-cardinality column, that is a conversation
+worth having.
+:::
+
+:::note[Embeddings are the same idea, grown up]
+When people talk about vectors and vector databases for LLMs, that is encoding too. Categories
+turned into numbers so a machine can measure how close two things are.
+
+One-hot is the crudest version: every category equally distant from every other. Embeddings learn
+the distances. Same problem, different sophistication.
+:::
+
+### 6.3 Scaling, and who actually needs it
+
+Standardisation rescales a column to mean 0 and standard deviation 1. Normalisation squeezes it
+into a range, usually 0 to 1.
+
+Whether you need it depends entirely on the algorithm:
+
+| Algorithm family | Needs scaling? | Why |
+|---|---|---|
+| Linear and logistic regression | **Yes** | coefficients are in the units of the feature |
+| SVM | **Yes** | it measures distances |
+| Neural networks | **Yes** | helps training converge |
+| Decision tree | **No** | it only compares thresholds within one column |
+| Random forest, boosting | **No** | same reason |
+
+Tree-based models are indifferent to scale, which is part of why they are so convenient on messy
+tabular data.
+
+Scaling matters to you for a second reason: the z-score drift detection in Module 10 operates in
+the **scaled** feature space. That is not a coincidence — it is the only space where a distance
+means the same thing across columns.
+
+---
+
+## 7. Evaluation: what the scores actually mean
+
+You will see these numbers in MLflow and in gate thresholds. Worth knowing precisely.
+
+For regression — predicting a number — the four common ones:
+
+| Metric | Formula, in words | Units | Behaviour |
+|---|---|---|---|
+| **MAE** | average of \|error\| | same as target | treats all errors equally |
+| **MSE** | average of error² | target squared | punishes large errors hard |
+| **RMSE** | square root of MSE | same as target | like MAE but weighted toward big misses |
+| **R²** | fraction of variance explained | none, 0 to 1 | 1.0 is perfect, 0 is no better than the mean |
+
+### Which to use, with a worked example
+
+Two models predicting house prices, ten houses each.
+
+```
+Model A errors: 5, 5, 5, 5, 5, 5, 5, 5, 5, 5      (lakhs)
+Model B errors: 0, 0, 0, 0, 0, 0, 0, 0, 0, 50
+
+MAE   A = 5.0      B = 5.0      ← identical
+RMSE  A = 5.0      B = 15.8     ← very different
+```
+
+Same MAE. Wildly different RMSE.
+
+Which model is better depends entirely on the business question. If being 50 lakhs wrong on one
+house is catastrophic, model A is better and RMSE tells you so. If consistent small errors annoy
+users more, model B is better and MAE tells you so.
+
+:::tip[R² and its trap]
+R² is popular because it is unitless and "0.99" feels good. But R² always increases when you add
+features, even useless random ones.
+
+Use **adjusted R²** when comparing models with different feature counts, or you will conclude that
+more features are always better.
+:::
+
+For classification you would instead meet precision, recall, F1 and AUC. Different module, same
+principle: **the metric encodes what you consider a bad mistake.**
+
+---
+
+## 8. Hyperparameters and the search over them
+
+**Parameters** are learned by the model during training. You never set them.
+**Hyperparameters** are chosen by you before training. The model never learns them.
+
+Three ways to search the space:
+
+```mermaid
+flowchart TB
+    G["Grid search<br/>try every combination"] --> G1["exhaustive, reproducible<br/>cost explodes: 4×3×3 = 36 fits<br/>× 3 CV folds = 108 trainings"]
+    R["Random search<br/>sample combinations"] --> R1["usually finds near-best faster<br/>most hyperparameters<br/>barely matter"]
+    B["Bayesian / Optuna<br/>learn where to look next"] --> B1["fewest trainings<br/>more machinery"]
+
+    style G fill:#e3f2fd
+    style R fill:#fff4e5
+    style B fill:#e8f5e9
+```
+
+The course uses grid search because it is predictable and the dataset is small. On a real problem,
+random search usually gets you to a similar place for a fraction of the compute — a result that
+surprised people when it was first published, and holds up.
+
+:::note[This is a capacity question, and it is yours]
+A grid of 36 combinations at cv=3 is 108 model trainings. On this dataset that is seconds. On a
+real dataset it can be hours on a large machine.
+
+When a data scientist asks for "a machine to run experiments on", this is the arithmetic behind
+the request.
+:::
+
+---
+
+## 9. Reproducibility as infrastructure
+
+Same data, same code, same config should produce the same model. That is not automatic.
+
+| Source of variation | How it is pinned |
+|---|---|
+| Train/test split | `random_state` seed |
+| Algorithm randomness | `random_state` on the estimator |
+| Library versions | pinned `requirements.txt`, and a container image |
+| The data itself | **data versioning** — DVC, lakeFS, or immutable object storage |
+| Which run produced what | **experiment tracking** — MLflow |
+
+The last two are the ones teams skip and later regret. Code versioning alone is not enough,
+because the same code over different data produces a different model.
+
+:::warning[Honest gap in this course]
+This project versions code and tracks experiments. It does **not** version data. `data/raw/` is a
+file in Git, which works only because the file is tiny and never changes.
+
+On a real project you would need DVC or equivalent. Without it, "which data trained this model"
+has no answer, and the retraining loop in Module 10 becomes untraceable.
+:::
+
+---
+
+## 10. Quick reference
+
+**Notation**
+
+| Symbol | Meaning |
+|---|---|
+| `X` | input features (capital — it is a matrix) |
+| `y` | target (lowercase — it is a vector) |
+| `X_train`, `y_train` | what the model learns from |
+| `X_test`, `y_test` | held back; `y_test` is never shown to the model |
+
+**Method names**
+
+| Call | What it does | Fitted on |
+|---|---|---|
+| `fit()` | learn the statistics or the model | training data only |
+| `transform()` | apply learned statistics | everything |
+| `fit_transform()` | both at once | **training only** — using this on test data is leakage |
+| `predict()` | produce answers | — |
+
+**Warning signs**
+
+| You see | Suspect |
+|---|---|
+| training score ≫ test score | overfitting |
+| both scores poor | underfitting |
+| suspiciously perfect score | leakage |
+| score swings between runs | too little data, or no seed set |
+| score fell after deployment | drift, or train/serve skew |
+
+---
+
+## 11. In the lab
+
+You will run the three scripts that turn `house_data.csv` into a trained model, explore the four
+notebooks behind them, and see every run appear in MLflow.
+
+Watch for two things specifically, because they connect to this chapter: the row count dropping
+from 84 to 77 during cleaning, and the fact that you finish with **two** artifacts rather than
+one.
+
+---
+
+## 12. Going deeper
+
+- *An Introduction to Statistical Learning* — James, Witten, Hastie, Tibshirani. Free PDF. Chapters 2 and 5 cover bias-variance and cross-validation better than anything else at this level
+- *Feature Engineering for Machine Learning* — Zheng and Casari
+- [scikit-learn: common pitfalls](https://scikit-learn.org/stable/common_pitfalls.html) — leakage and how to avoid it, from the source
+- [scikit-learn: cross-validation](https://scikit-learn.org/stable/modules/cross_validation.html)
+- Bergstra and Bengio, *Random Search for Hyper-Parameter Optimization* (2012) — the paper behind §8
+- [Hidden Technical Debt in Machine Learning Systems](https://papers.nips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html) — Sculley et al., Google. The paper that named the problem MLOps exists to solve. Read this one
