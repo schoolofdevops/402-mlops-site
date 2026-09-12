@@ -1,0 +1,347 @@
+---
+sidebar_position: 1
+title: 'Lesson: Building an MLOps CI Pipeline with GitHub Actions'
+---
+
+# Building an MLOps CI Pipeline with GitHub Actions
+
+Ask yourself what you normally do once an application is containerised.
+
+You set up a CI pipeline. Build, test, package, publish the image. Jenkins, GitHub Actions,
+GitLab, whichever your team uses.
+
+That instinct is correct here too. The steps are different, but the shape is the same, and so are
+the tools. This module takes everything you have been running by hand since Module 3 and hands it
+to a pipeline.
+
+## What you'll learn
+
+- Read GitHub Actions workflow syntax and explain triggers, jobs and steps
+- Store registry credentials correctly as a variable and a secret
+- Build a multi-stage pipeline where each job depends on the one before it
+- Pass files between jobs using artifacts, since jobs share no filesystem
+- Explain why an ML pipeline is an ordinary CI pipeline with a different payload
+
+## First, let's call it what it is
+
+You will see a lot of MLOps content describing what we are about to build as a "CI/CD pipeline".
+It is not.
+
+```mermaid
+flowchart LR
+    subgraph CI["Continuous Integration — this module"]
+        direction LR
+        A["raw data"] --> B["process"]
+        B --> C["feature engineering"]
+        C --> D["train + evaluate"]
+        D --> E["build image"]
+        E --> F[("registry")]
+    end
+
+    subgraph CD["Continuous Delivery — modules 6 and 8"]
+        direction LR
+        G["Kubernetes"]
+        H["Argo CD"]
+    end
+
+    F ==>|"CD starts HERE"| CD
+
+    style CI fill:#e3f2fd
+    style CD fill:#e8f5e9
+```
+
+Continuous integration ends when the image lands in the registry. Continuous delivery is
+everything after that, and it needs different tools, which you meet in Module 8.
+
+So this is an **MLOps CI workflow**. Getting the names right is not pedantry. It tells you which
+tool to reach for.
+
+## The workflow you are automating
+
+Nothing here is new. You have done every step by hand already.
+
+```mermaid
+flowchart TD
+    D0[("raw data<br/>CSV")] --> D1["ingest / process<br/>run_processing.py"]
+    D1 --> D2["cleaned data"]
+    D2 --> D3["feature engineering<br/>engineer.py"]
+    D3 --> D4["featured data<br/>+ preprocessor.pkl"]
+    D4 --> D5["train + evaluate<br/>train_model.py"]
+    D5 --> D6["model.pkl<br/>+ metrics in MLflow"]
+    D6 --> D7["build container image"]
+    D7 --> D8[("Docker Hub")]
+
+    style D0 fill:#ffebee
+    style D8 fill:#e8f5e9
+    style D6 fill:#fff4e5
+```
+
+The trigger is a push to your repository. The pipeline lives in the same repository as the code,
+which means the pipeline is reviewed like code and changes with it.
+
+:::note[A step we are skipping, and you should not]
+Between training and packaging there should be a **model validation** step. Training already
+produces scores such as R² and MAE. A validation step reads those and **fails the build** if the
+model is worse than a threshold.
+
+We keep it simple here and skip it. In real work, put it in. Without it, your pipeline will
+happily package and publish a model that got worse.
+:::
+
+## One pipeline, or several?
+
+We build one. Real organisations usually build several.
+
+```mermaid
+flowchart TB
+    P1["Data ingestion pipeline<br/>runs daily<br/>pull, clean, store, version"] --> DL[("data lake / S3")]
+    DL --> P2["Feature engineering pipeline<br/>apply feature logic"]
+    P2 --> FS[("feature store")]
+    FS --> P3["Training pipeline<br/>tune, cross-validate,<br/>evaluate, register"]
+    P3 --> REG[("model registry")]
+    REG --> P4["CI pipeline<br/>lint, test, containerise, publish"]
+    P4 --> CR[("container registry")]
+    CR --> P5["CD pipeline<br/>Argo CD / Flux"]
+
+    FS -.->|"same features<br/>at inference"| P5
+
+    style FS fill:#fff4e5
+    style P4 fill:#e3f2fd
+    style P5 fill:#e8f5e9
+```
+
+Why split them? **Reuse.** Feature engineering is needed during training and again during
+serving. If it is its own pipeline, both can call it.
+
+That dotted line is the important one. A **feature store** exists so the features used at
+inference are the same ones used at training. When those two drift apart, your model is fed
+something subtly different from what it learned on, and nobody notices. We do not use one in this
+course, but you should know the name and the problem it solves.
+
+Netflix, Airbnb and Spotify run hundreds of models with data arriving from many systems. At that
+scale, separate pipelines are not an option, they are the only way it stays manageable.
+
+## DAGs, and the tools that run them
+
+Those boxes with arrows have a name. A **DAG**, which is nothing but a directed acyclic graph.
+
+```mermaid
+flowchart LR
+    S["start"] --> A["step A"]
+    S --> B["step B"]
+    A --> C["step C"]
+    B --> C
+    C --> D["step D"]
+    C --> E["step E"]
+
+    style S fill:#e3f2fd
+```
+
+**Directed** means the arrows point one way. **Acyclic** means no loops, because a loop would run
+forever. **Graph** is the shape. Some steps run in parallel, some wait for others.
+
+Every pipeline tool you will meet is built on this idea:
+
+| Tool | Where it fits |
+|---|---|
+| **Argo Workflows** | Kubernetes-native. Good if you are already on Kubernetes |
+| **Kubeflow** | Kubernetes-native, ML-specific |
+| **Apache Airflow** | General purpose. Good when you have more than Kubernetes |
+| **Metaflow** | From Netflix. Pipelines written in Python rather than YAML |
+| **GitHub Actions** | Simplest. Runs on GitHub's own machines, no infrastructure to set up |
+
+Metaflow is worth a second look if your team is all Python and nobody wants to write YAML. Same
+instinct that makes data scientists reach for Streamlit.
+
+We pick **GitHub Actions** for one reason: anybody can run this course on any machine, with no
+extra infrastructure at all.
+
+## The anatomy of a workflow
+
+```mermaid
+flowchart TB
+    N["name:<br/>what the pipeline is called"]
+    N --> O["on:<br/>the EVENT that triggers it<br/>push, pull_request, schedule,<br/>tag, workflow_dispatch"]
+    O --> J["jobs:"]
+
+    J --> J1["job: data-processing"]
+    J --> J2["job: model-training"]
+    J --> J3["job: build-and-publish"]
+
+    J1 --> R1["runs-on: ubuntu-latest<br/>(a fresh VM — the RUNNER)"]
+    R1 --> S1["steps:<br/>- checkout<br/>- setup python<br/>- install deps<br/>- run script"]
+
+    style O fill:#fff4e5
+    style R1 fill:#e3f2fd
+    style S1 fill:#e8f5e9
+```
+
+**Events** decide when it runs. A push to `main`, a pull request, a tag, a schedule, or a manual
+button via `workflow_dispatch`. That manual button is worth adding while you are still getting a
+pipeline working.
+
+**Jobs** are your stages. If you know Jenkins, a job is a stage.
+
+**The runner** is the machine. `ubuntu-latest` gives you a fresh virtual machine that GitHub
+throws away when the job ends.
+
+**Steps** are the individual commands inside a job. A step either runs a shell command with `run`,
+or borrows somebody else's prewritten action with `uses`.
+
+## The thing that surprises people
+
+Each job gets its **own fresh machine**. Nothing carries over.
+
+```mermaid
+flowchart TB
+    subgraph JOB1["job 1 — data-processing"]
+        direction TB
+        A1["fresh VM"] --> A2["produces<br/>featured_house_data.csv<br/>preprocessor.pkl"]
+        A2 --> A3["upload-artifact"]
+    end
+
+    subgraph GH[" GitHub artifact storage "]
+        ART[("processed-data<br/>preprocessor")]
+    end
+
+    subgraph JOB2["job 2 — model-training"]
+        direction TB
+        B1["fresh VM<br/>(empty! job 1's files are gone)"] --> B2["download-artifact"]
+        B2 --> B3["train the model"]
+    end
+
+    A3 --> ART
+    ART --> B2
+
+    style JOB1 fill:#e3f2fd
+    style JOB2 fill:#e8f5e9
+    style GH fill:#fff4e5
+```
+
+Job two does not have the files job one created. That machine has already been destroyed. So
+anything that needs to travel between jobs has to be uploaded and downloaded explicitly, as an
+**artifact**.
+
+`needs:` is what makes jobs run in order rather than all at once.
+
+## Credentials, done properly
+
+The pipeline has to log in to Docker Hub. You would never put a password in a YAML file, so you
+use an access token and store it outside the code.
+
+GitHub gives you two stores, and the difference matters:
+
+```mermaid
+flowchart LR
+    subgraph VARS["Variables — readable"]
+        V["DOCKERHUB_USERNAME<br/>your docker id"]
+    end
+    subgraph SECS["Secrets — masked in logs"]
+        S["DOCKERHUB_TOKEN<br/>read & write token"]
+    end
+
+    VARS -->|"vars.DOCKERHUB_USERNAME"| W["workflow"]
+    SECS -->|"secrets.DOCKERHUB_TOKEN"| W
+
+    style VARS fill:#e3f2fd
+    style SECS fill:#ffebee
+```
+
+:::warning[The mistake that produces a very confusing error]
+Put the username in **Variables**, not Secrets. The workflow reads it as
+`vars.DOCKERHUB_USERNAME`.
+
+If you store it as a secret by mistake, `vars.DOCKERHUB_USERNAME` comes back empty and your image
+tag becomes `docker.io//streamlit:latest`, with two slashes. The login step may even succeed. The
+push fails with something unhelpful.
+:::
+
+## Start small
+
+Do not write the three-job pipeline first. Write one job that does one thing, and get it green.
+
+The Streamlit workflow is that starter. One job, builds one image, pushes it. It also shows a
+useful trick:
+
+```
+on:
+  push:
+    paths:
+      - 'streamlit_app/**'
+```
+
+**Path filters.** This workflow only runs when something under `streamlit_app/` changed. Editing a
+notebook does not rebuild the web image. In a repository with several pipelines, this is what
+stops every commit running everything.
+
+Once that works, the credentials are proven and the full pipeline is just more of the same.
+
+## Two details in the full pipeline
+
+**MLflow is started and stopped inside the training job.** The job runs a tracking server in the
+runner, uses it, and kills it at the end. The run history disappears with the machine.
+
+That is fine for learning. In real work you would point `--mlflow-tracking-uri` at a permanent
+server, so the history survives and you can compare this week's model against last month's.
+
+**There is a wait loop before training starts:**
+
+```
+for i in {1..10}; do
+  curl -f http://localhost:5000/health || sleep 5;
+done
+```
+
+Starting a container and being able to talk to it are two different moments. Without this loop
+the training step sometimes runs before MLflow is listening, and the job fails for no visible
+reason.
+
+Waiting for a service to become ready is something you will write many times in your career. It
+is worth recognising the pattern.
+
+## The point of the whole module
+
+```mermaid
+flowchart LR
+    subgraph N["A normal CI pipeline"]
+        direction TB
+        N1["checkout"] --> N2["install deps"]
+        N2 --> N3["run build steps"]
+        N3 --> N4["build image"]
+        N4 --> N5["push"]
+    end
+
+    subgraph M["An MLOps CI pipeline"]
+        direction TB
+        M1["checkout"] --> M2["install deps"]
+        M2 --> M3["process data<br/>engineer features<br/>train model"]
+        M3 --> M4["build image"]
+        M4 --> M5["push"]
+    end
+
+    N <-->|"same machinery"| M
+
+    style N fill:#e3f2fd
+    style M fill:#e8f5e9
+```
+
+There is no special ML build system involved. It is checkout, install, run some steps, build an
+image, push it. The only thing that makes it a machine learning pipeline is what the steps happen
+to do.
+
+If you already know CI, you already knew most of this module before it started.
+
+## What you should have at the end
+
+- a single-job workflow building and pushing the Streamlit image
+- `DOCKERHUB_USERNAME` as a repository **variable**, `DOCKERHUB_TOKEN` as a **secret**
+- a three-job pipeline: data processing, then training, then build and publish
+- artifacts visibly moving between the jobs in the run summary
+- a fresh image on Docker Hub that nobody built by hand
+
+One thing is still unresolved, and it gets worse before it gets better. Every image is tagged
+`latest`. When you deploy to Kubernetes in Module 6, nothing in the system will be able to tell
+one build from another.
+
+That problem comes due in Module 8, where it costs real debugging time. Module 9 fixes it
+properly.

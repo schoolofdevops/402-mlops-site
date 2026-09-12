@@ -1,0 +1,312 @@
+---
+sidebar_position: 1
+title: 'Lesson: Packaging the Model and Serving it with FastAPI'
+---
+
+# Packaging the Model and Serving it with FastAPI
+
+This is the module where you stop borrowing somebody else's chair and sit in your own.
+
+Up to now you have been following the data scientist's work. From here the container knowledge
+you already have starts paying off. You would package a model into an image, put an API in front
+of it, and run the whole thing as a stack.
+
+:::note[What is assumed here]
+Working knowledge of Docker. Writing a Dockerfile, building an image, and reading a Compose
+file. If any of that is shaky, go and cover Docker first. This module shows you how to apply
+that knowledge to a model, not what a container is.
+:::
+
+## What you'll learn
+
+- Explain what a data scientist hands over, and what is missing from that handover
+- Wrap a model in a FastAPI service with request validation
+- Write a Dockerfile that packages code and model together, ordered for layer caching
+- Run the API and the web interface together with Docker Compose
+- Debug a container that builds cleanly but exits on start
+
+## What actually crosses the line
+
+The handover is not a conversation. It is a set of files.
+
+```mermaid
+flowchart LR
+    subgraph DS["Data scientist / ML engineer"]
+        direction TB
+        D1["configs/model_config.yaml<br/>chosen algorithm + parameters"]
+        D2["notebooks/<br/>how it was figured out"]
+        D3["models/trained/<br/>house_price_model.pkl"]
+        D4["models/trained/<br/>preprocessor.pkl"]
+    end
+
+    subgraph YOU["You"]
+        direction TB
+        Y1["make it callable"]
+        Y2["make it portable"]
+        Y3["make it repeatable"]
+    end
+
+    DS ==>|"handover"| YOU
+
+    style DS fill:#e3f2fd
+    style YOU fill:#c8e6c9
+```
+
+Two of those four are the important ones, and you met them in Module 3. The **model** and the
+**preprocessor**. They travel together, always.
+
+:::note[Who does this job?]
+It depends on the organisation. In a smaller team the ML engineer writes the FastAPI app and the
+Dockerfile themselves, the same way a software engineer would. In a larger one there is a
+dedicated MLOps team, and you are helping the ML engineers containerise their work.
+
+Either way, the work below is the same.
+:::
+
+## Why a `.pkl` file cannot be a service
+
+Here is the core problem of this module, in one picture.
+
+```mermaid
+flowchart LR
+    U["a user<br/>or another service"] -.->|"HTTP?"| P["model.pkl"]
+    P -.->|"cannot respond"| X["✖"]
+
+    U2["a user<br/>or another service"] -->|"POST /predict"| API["FastAPI<br/>(a running process)"]
+    API -->|"python call"| P2["model.pkl<br/>loaded in memory"]
+    P2 --> API
+    API -->|"JSON response"| U2
+
+    style X fill:#ffebee
+    style API fill:#c8e6c9
+```
+
+A pickle file is a saved Python object sitting on disk. It is not a program. Nothing can talk to
+it over the network, and it cannot listen for anything.
+
+Systems talk to each other over HTTP. So somebody has to write a small program that loads the
+model into memory, listens on a port, accepts a request, calls the model, and sends the answer
+back.
+
+That program is the FastAPI application, and it is the thing you would actually deploy.
+
+:::note[Inference and prediction are the same thing]
+You will hear both words. When a client calls `/predict`, the code behind it runs the model over
+the input and produces an answer. That act is called **inference**.
+
+So running the FastAPI app is running inference. Nothing more mysterious than that.
+:::
+
+## What the API is made of
+
+Three small files under `src/api/`, each with one job.
+
+```mermaid
+flowchart TB
+    R["POST /predict<br/>{ sqft, bedrooms, location... }"] --> S["schemas.py<br/>is the request the right shape?"]
+    S -->|"bad request"| E["422, rejected<br/>before the model is touched"]
+    S -->|"valid"| I["inference.py"]
+
+    subgraph I2["inference.py does two things"]
+        direction TB
+        I3["1 — preprocessor.transform()<br/>build the engineered features"]
+        I4["2 — model.predict()"]
+        I3 --> I4
+    end
+
+    I --> I2
+    I2 --> M["main.py returns the price"]
+
+    style E fill:#ffebee
+    style I2 fill:#fff4e5
+    style M fill:#c8e6c9
+```
+
+**`schemas.py`** defines the shape of a request. FastAPI checks incoming data against it, so a
+request with a missing field, or text where a number should be, gets rejected before it ever
+reaches your model. You get that for free just by declaring the shape.
+
+**`inference.py`** does the real work. It loads both files with `joblib`, applies the
+preprocessor, then calls `model.predict()`.
+
+**`main.py`** wires it into a web service with three endpoints:
+
+| Endpoint | What it is for |
+|---|---|
+| `/health` | a cheap liveness check. Used later by Kubernetes and by synthetic traffic |
+| `/predict` | one prediction |
+| `/batch-predict` | a list in, a list out |
+
+### The preprocessor shows up again, and it costs you something
+
+The client sends raw values. `sqft`, `bedrooms`, `location`. It does not send `house_age` or
+`price_per_sqft`, because those were invented during feature engineering.
+
+So the API has to build them, at request time, using the saved preprocessor.
+
+:::warning[This is latency you are paying for on every request]
+Preprocessing happens inside the request path. It is not free. When you get to Module 7 and
+start looking at p95 latency, remember that some of that number is transformation work, not
+model work.
+
+It is also why the preprocessor must be packaged **with** the model. Ship one without the other
+and the service starts cleanly and returns wrong answers.
+:::
+
+## The Streamlit client
+
+You could test the API with `curl` or Postman. For a course, and honestly for a demo to
+stakeholders, a small web page is easier.
+
+**Streamlit** lets you build that page in Python alone, which is why data science teams reach
+for it. It is a prototyping tool, not your production front end.
+
+One line in it matters more than all the rest:
+
+```python
+api_endpoint = os.getenv("API_URL", "http://model:8000")
+```
+
+The app does not know where the API lives. It reads an environment variable. That single
+decision is what lets the same image run under Compose in this module, and under Kubernetes in
+Module 6, without a rebuild.
+
+## Packaging: two images, not one
+
+```mermaid
+flowchart TB
+    subgraph IMG1["Image 1 — the model API"]
+        direction TB
+        A1["python:3.11-slim"]
+        A2["src/api/ code"]
+        A3["pip install requirements"]
+        A4["models/trained/*.pkl"]
+        A5["uvicorn on :8000"]
+        A1 --> A2 --> A3 --> A4 --> A5
+    end
+
+    subgraph IMG2["Image 2 — the web client"]
+        direction TB
+        B1["python:3.9-slim"]
+        B2["app.py + requirements"]
+        B3["pip install"]
+        B4["streamlit on :8501"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    style IMG1 fill:#e8f5e9
+    style IMG2 fill:#e3f2fd
+```
+
+Two services means each can be rebuilt, scaled and replaced on its own. When you retrain the
+model in Module 10, only the API image changes. The front end is untouched.
+
+### Two details in the Dockerfile that matter later
+
+**Order your layers so the cache works for you.** Install the requirements *before* copying the
+model in:
+
+```
+COPY src/api/ .
+RUN pip install -r requirements.txt
+COPY models/trained/*.pkl models/trained/
+```
+
+Docker caches each layer. When you retrain and only the `.pkl` files change, the install layer is
+reused and the build takes seconds instead of minutes. That feels like a small thing now. Once a
+pipeline rebuilds this on every commit, and again on every retrain, you feel it every day.
+
+**Bind to `0.0.0.0`, not localhost.**
+
+```
+CMD [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
+```
+
+:::warning[The failure that looks like nothing is wrong]
+Leave `--host 0.0.0.0` out and uvicorn listens only inside the container. The container starts.
+The logs look perfectly healthy. Every request from outside times out.
+
+There is no error message to search for, which is what makes this one expensive.
+:::
+
+## Running them together with Compose
+
+Two containers that have to find each other is exactly the problem Compose solves.
+
+```mermaid
+flowchart LR
+    subgraph NET["compose network"]
+        direction LR
+        S["streamlit<br/>:8501"] -->|"http://fastapi:8000"| F["fastapi<br/>:8000"]
+    end
+
+    BROWSER["your browser"] -->|"localhost:8501"| S
+    BROWSER -->|"localhost:8000/docs"| F
+
+    style NET fill:#fff4e5
+    style S fill:#e3f2fd
+    style F fill:#e8f5e9
+```
+
+The line doing the work is this:
+
+```
+environment:
+  API_URL: http://fastapi:8000
+```
+
+`fastapi` is the **service name** from the Compose file. Compose runs a small DNS server on the
+shared network, so that name resolves to whichever container is running that service. You never
+write an IP address.
+
+Hold onto that idea. In Module 6 you do exactly the same thing on Kubernetes, using a Service
+name instead of a Compose service name. Same problem, same answer, different platform.
+
+## When it breaks
+
+It will. Three causes cover nearly every case, and all three are readable from the logs.
+
+```mermaid
+flowchart TD
+    START["container exits<br/>immediately"] --> L["docker logs api"]
+
+    L --> C1["FileNotFoundError<br/>on a .pkl path"]
+    L --> C2["ModuleNotFoundError"]
+    L --> C3["address already in use"]
+
+    C1 --> F1["the model is not where<br/>inference.py looks.<br/>Shell into the image and check"]
+    C2 --> F2["the package is in the root<br/>requirements.txt, not in<br/>src/api/requirements.txt"]
+    C3 --> F3["change the LEFT side of<br/>the port mapping only"]
+
+    style START fill:#ffebee
+    style F1 fill:#e8f5e9
+    style F2 fill:#e8f5e9
+    style F3 fill:#e8f5e9
+```
+
+The habit worth building: **read the log before changing anything**. The message almost always
+names the file, the module or the port. Guessing is slower, and it usually introduces a second
+problem on top of the first.
+
+For the port clash specifically, change only the host side:
+
+```
+ports:
+  - 8005:8000
+```
+
+The service still listens on 8000 inside. You reach it on 8005.
+
+## What you should have at the end
+
+- a Dockerfile for the model API, and one for the Streamlit client
+- both images built and tested on their own before being combined
+- a `docker-compose.yaml` running both, connected by service name
+- a working prediction, browser to Streamlit to FastAPI to model and back
+- the ability to read a container log and know which of the three failures you are looking at
+
+One question to sit with before the next module. You now have an image with a model baked into
+it. If somebody asks which model version a running container is serving, could you tell them?
+
+Right now, no. The tag says `latest`, and `latest` means nothing. That gap is what Module 5 starts
+to close, when a pipeline takes over the building.
